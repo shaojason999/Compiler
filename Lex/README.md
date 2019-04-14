@@ -7,7 +7,8 @@ $ ./a.out test.c
 ```
 
 ### Notes:
-1. 最難的部分為/**/的comment: 可以先畫出NFA/DFA然後化簡成只有兩個state，再寫出RE  
+1. 最難的部分為/\*\*/ 的comment: /\*\*/之間不能出現\*/  
+可以先畫出NFA/DFA然後化簡成只有兩個state，再寫出RE  
 ``` 
 \/\*[^\*]*\*(\**|[^\/\*][^\*]*\*)*\/	{ for(int i=0;i<yyleng;++i)if(yytext[i]=='\n')++cline; ++cline; printf("%s \t COMMENT\n", yytext); }
 ```
