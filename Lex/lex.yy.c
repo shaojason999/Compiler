@@ -1121,7 +1121,7 @@ case 52:
 /* rule 52 can match eol */
 YY_RULE_SETUP
 #line 73 "compiler_hw1.l"
-{ for(int i=0;i<yyleng;++i)if(yytext[i]=='\n')++cline; printf("%s \t COMMENT\n", yytext); }
+{ for(int i=0;i<yyleng;++i)if(yytext[i]=='\n')++cline; ++cline; printf("%s \t COMMENT\n", yytext); }
 	YY_BREAK
 case 53:
 /* rule 53 can match eol */

@@ -70,7 +70,7 @@ number {digit}+
 \"([^\"\n]|"\\\"")+\"	{ yytext[yyleng-1]='\0';printf("\" \t QUOTA\n");printf("%s \t STR_CONST\n", &yytext[1]);printf("\" \t QUOTA\n"); }
 {id}	{ printf("%s \t ID\n", yytext); }
 "//".*	{ ++cline; printf("%s \t COMMENT\n", yytext); }
-\/\*[^\*]*\*(\**|[^\/\*][^\*]*\*)*\/	{ for(int i=0;i<yyleng;++i)if(yytext[i]=='\n')++cline; printf("%s \t COMMENT\n", yytext); }
+\/\*[^\*]*\*(\**|[^\/\*][^\*]*\*)*\/	{ for(int i=0;i<yyleng;++i)if(yytext[i]=='\n')++cline; ++cline; printf("%s \t COMMENT\n", yytext); }
 
 \n	{++line;}
 [ \t]	{;}
