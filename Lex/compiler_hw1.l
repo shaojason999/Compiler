@@ -65,9 +65,9 @@ number {digit}+
 "return"	{ printf("%s \t RET\n", yytext); }
 "continue"	{ printf("%s \t CONT\n", yytext); }
 "break"	{ printf("%s \t BREAK\n", yytext); }
-[-+]?([ \t]+)?[0-9]+\.?([Ee][+-]?[0-9]+)?	{ printf("%s \t I_CONST\n", yytext); }
+[-+]?([ \t]+)?[0-9]+([Ee][+-]?[0-9]+)?	{ printf("%s \t I_CONST\n", yytext); }
 [-+]?([0-9]+)?\.[0-9]+([Ee][+-]?[0-9]+)?	{ printf("%s \t F_CONST\n", yytext); }
-\"([^\"\n]|"\\\"")+\"	{ yytext[yyleng-1]='\0';printf("\" \t QUOTA\n");printf("%s \t STR_CONST\n", &yytext[1]);printf("\" \t QUOTA\n"); }
+\"([^"\n]|\\\"|\\\n)+\"	{ yytext[yyleng-1]='\0';printf("\" \t QUOTA\n");printf("%s \t STR_CONST\n", &yytext[1]);printf("\" \t QUOTA\n"); }
 {id}	{ printf("%s \t ID\n", yytext); }
 "//".*	{ ++cline; printf("%s \t COMMENT\n", yytext); }
 \/\*[^\*]*\*(\**|[^\/\*][^\*]*\*)*\/	{ for(int i=0;i<yyleng;++i)if(yytext[i]=='\n')++cline; ++cline; printf("%s \t COMMENT\n", yytext); }
