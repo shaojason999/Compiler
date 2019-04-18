@@ -65,12 +65,12 @@ number {digit}+
 "return"	{ printf("%s \t RET\n", yytext); }
 "continue"	{ printf("%s \t CONT\n", yytext); }
 "break"	{ printf("%s \t BREAK\n", yytext); }
-[-+]?([ \t]+)?[0-9]+([Ee][+-]?[0-9]+)?	{ printf("%s \t I_CONST\n", yytext); }
-[-+]?([0-9]+)?\.[0-9]+([Ee][+-]?[0-9]+)?	{ printf("%s \t F_CONST\n", yytext); }
+[0-9]+([Ee][+-]?[0-9]+)?	{ printf("%s \t I_CONST\n", yytext); }
+([0-9]+)?\.[0-9]+([Ee][+-]?[0-9]+)?	{ printf("%s \t F_CONST\n", yytext); }
 \"([^"\n]|\\\"|\\\n)+\"	{ yytext[yyleng-1]='\0';printf("\" \t QUOTA\n");printf("%s \t STR_CONST\n", &yytext[1]);printf("\" \t QUOTA\n"); }
 {id}	{ printf("%s \t ID\n", yytext); }
-"//".*	{ ++cline; printf("%s \t COMMENT\n", yytext); }
-\/\*[^\*]*\*(\**|[^\/\*][^\*]*\*)*\/	{ for(int i=0;i<yyleng;++i)if(yytext[i]=='\n')++cline; ++cline; printf("%s \t COMMENT\n", yytext); }
+"//".*	{ ++cline;--line; printf("%s \t C++ Comment\n", yytext); }
+\/\*[^\*]*\*(\**|[^\/\*][^\*]*\*)*\/	{ for(int i=0;i<yyleng;++i)if(yytext[i]=='\n')++cline; ++cline; --line; printf("%s \t C Comment\n", yytext); }
 
 \n	{++line;}
 [ \t]	{;}
@@ -91,7 +91,7 @@ int main(int argc,char *argv[])
 	cline=0;
 	yyin = fopen(argv[1],"r");
 	yylex();
-	printf("\nParse over, the line number is %d.\n\n",line+cline);
+	printf("\nParse over, the line number is %d.\n\n",line+cline+1);
 	printf("comment: %d lines\n\n",cline);
 
 	return 0;
