@@ -1,0 +1,150 @@
+Terminals unused in grammar
+
+   ADD
+   SUB
+   MUL
+   DIV
+   MOD
+   INC
+   DEC
+   MT
+   LT
+   MTE
+   LTE
+   EQ
+   NE
+   ASGN
+   ADDASGN
+   SUBASGN
+   MULASGN
+   DIVASGN
+   MODASGN
+   AND
+   OR
+   NOT
+   LB
+   RB
+   LCB
+   RCB
+   LSB
+   RSB
+   COMMA
+   PRINT
+   IF
+   ELSE
+   FOR
+   WHILE
+   RET
+   CONT
+   BREAK
+   VOID
+   FLOAT
+   STRING
+   BOOL
+   TRUE
+   FALSE
+   I_CONST
+   F_CONST
+   CPP_COMMENT
+   ID
+   SEMICOLON
+
+
+Grammar
+
+    0 $accept: program $end
+
+    1 program: INT
+
+
+Terminals, with rules where they appear
+
+$end (0) 0
+error (256)
+ADD (258)
+SUB (259)
+MUL (260)
+DIV (261)
+MOD (262)
+INC (263)
+DEC (264)
+MT (265)
+LT (266)
+MTE (267)
+LTE (268)
+EQ (269)
+NE (270)
+ASGN (271)
+ADDASGN (272)
+SUBASGN (273)
+MULASGN (274)
+DIVASGN (275)
+MODASGN (276)
+AND (277)
+OR (278)
+NOT (279)
+LB (280)
+RB (281)
+LCB (282)
+RCB (283)
+LSB (284)
+RSB (285)
+COMMA (286)
+PRINT (287)
+IF (288)
+ELSE (289)
+FOR (290)
+WHILE (291)
+RET (292)
+CONT (293)
+BREAK (294)
+VOID (295)
+INT (296) 1
+FLOAT (297)
+STRING (298)
+BOOL (299)
+TRUE (300)
+FALSE (301)
+I_CONST (302)
+F_CONST (303)
+CPP_COMMENT (304)
+ID (305)
+SEMICOLON (306)
+
+
+Nonterminals, with rules where they appear
+
+$accept (52)
+    on left: 0
+program (53)
+    on left: 1, on right: 0
+
+
+State 0
+
+    0 $accept: . program $end
+
+    INT  shift, and go to state 1
+
+    program  go to state 2
+
+
+State 1
+
+    1 program: INT .
+
+    $default  reduce using rule 1 (program)
+
+
+State 2
+
+    0 $accept: program . $end
+
+    $end  shift, and go to state 3
+
+
+State 3
+
+    0 $accept: program $end .
+
+    $default  accept

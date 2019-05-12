@@ -20,27 +20,40 @@ void dump_symbol();
     int i_val;
     double f_val;
     char* string;
+    bool boolean;
 }
 
 /* Token without return */
-%token PRINT 
-%token IF ELSE FOR
-%token ID SEMICOLON
+%token ADD SUB MUL DIV MOD INC DEC
+%token MT LT MTE LTE EQ NE
+%token ASGN ADDASGN SUBASGN MULASGN DIVASGN MODASGN
+%token AND OR NOT
+%token LB RB LCB RCB LSB RSB COMMA
+%token PRINT
+%token IF ELSE FOR WHILE RET CONT BREAK
+%token VOID INT FLOAT STRING BOOL
+%token TRUE FALSE
+//%token STR_CONST
+%token I_CONST F_CONST
+//%token C_COMMENT
+%token CPP_COMMENT
+%token ID
+%token SEMICOLON
 
 /* Token with return, which need to sepcify type */
-%token <i_val> I_CONST
-%token <f_val> F_CONST
-%token <string> STRING
+//%token <i_val> I_CONST
+//%token <f_val> F_CONST
+//%token <string> STRING
 
 /* Nonterminal with return, which need to sepcify type */
-%type <f_val> stat
+//%type <f_val> stat
 
 /* Yacc will start at this nonterminal */
 %start program
 
 /* Grammar section */
 %%
-
+/*
 program
     : program stat
     |
@@ -58,7 +71,8 @@ declaration
     | type ID SEMICOLON
 ;
 
-/* actions can be taken when meet the token or rule */
+// actions can be taken when meet the token or rule
+
 type
     : INT { $$ = $1; }
     | FLOAT { $$ = $1; }
@@ -66,7 +80,7 @@ type
     | STRING { $$ = $1; }
     | VOID { $$ = $1; }
 ;
-
+*/
 %%
 
 /* C code section */
