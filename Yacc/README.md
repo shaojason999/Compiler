@@ -81,7 +81,7 @@
     ```
 * [參考資料](https://stackoverflow.com/questions/12876543/left-and-right-in-yacc)
 
-### 3. 觀念釐清
+## 觀念釐清
 1. 沒有被 %token 或是 %left 等方式定義的grammar rule裡出現的符號，都會被當成nonterminal
     * 也就是說nonterminal不需要特別定義
 2. $$ = $1 + $3; 是什麼意思?
@@ -94,3 +94,9 @@
     * 如果是terminal的話，值就是從lex的yylval取得
     * 一般來說可能不需要計算，只有當你可能想要在parse的某個時候print出來目前算到的值時，才會需要。不過，這不是parser本來應該有的功能
     * 可以參考以下這個很清楚的範例[UVa 11291](http://morris821028.github.io/2014/05/12/oj/uva/uva-11291-with-yacc/)
+3. (我猜)在yacc中terminal或nonterminal就算有return，也不一定要指定是哪一種形式啦，比如說:
+    * 除非有做一些$$ = $1 + $3; 這種運算可能才要
+    ```
+    %token <string> STRING
+    %type <f_val> stat
+    ```
