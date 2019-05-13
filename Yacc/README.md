@@ -1,7 +1,7 @@
 # Yacc
 
 ## 程式碼說明
-### 1. %union and yylval
+#### 1. %union and yylval
 * 當yacc需要從lex取得值時，需要在lex將值儲存在yylval中，比如這樣:
     ```
     [0-9]+ { 
@@ -61,7 +61,7 @@
     * 往下走到terminal時，terminal的值就是從lex的yylval來(因此type很重要)
 * [參考資料1](https://stackoverflow.com/questions/1853204/yylval-and-union) [參考資料2](https://www.cnblogs.com/rednodel/p/4500276.html)
 
-### 2. %left %right %nonassoc
+#### 2. %left %right %nonassoc
 * 定義terminal的left or right associative(不需要再用%token定義)
 * 比如1+2+3
     * %left時，解析成(1+2)+3
@@ -100,3 +100,20 @@
     %token <string> STRING
     %type <f_val> stat
     ```
+    
+## 其他注意事項
+1. lex檔裡的return要放在BEGIN後面
+```
+"/*"                    { BEGIN COMMENT; }
+<COMMENT>[^*\n]+        {  }
+<COMMENT>\n             {  }
+<COMMENT>"*"            {  }
+<COMMENT>"*/"           { BEGIN INITIAL; return C_COMMENT;}
+```
+
+2. lex檔裡的<<EOF>>要特別處理:  [參考資料](http://dinosaur.compilertools.net/flex/flex_13.html)
+    * 其中一個方法是yyterminate();
+
+3. grammar參考 [ANSI C Yacc grammar](http://www.quut.com/c/ANSI-C-grammar-y.html#jump_statement)
+    * 可是這個範例裡面問題超多，參考就好
+    * 主要還是自己寫及修改
