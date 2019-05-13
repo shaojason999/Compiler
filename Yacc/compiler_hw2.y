@@ -5,6 +5,7 @@
 
 extern int yylineno;
 extern int yylex();
+extern void yyerror(char *s);
 extern char* yytext;   // Get current token from lex
 extern char buf[256];  // Get current code line from lex
 
@@ -118,12 +119,16 @@ function_parameter_list
 
 statement
 	: compound_statement
-	| expression_statement
+	| statement_with_return
 	| selection_statement
 	| iteration_statement
-	| print_statement
 	| comment
 	| jump_statement
+;
+
+statement_with_return
+	: expression_statement
+	| print_statement
 ;
 
 print_statement
@@ -138,7 +143,7 @@ comment
 
 jump_statement
 	: RET SEMICOLON
-	| RET expression_list SEMICOLON
+	| RET statement_with_return
 ;
 
 compound_statement
@@ -246,6 +251,8 @@ prefix_expression
 
 postfix_expression
 	: ID
+	| ID LB RB
+	| ID LB expression_list RB
 	| const
 	| LB expression_list RB
 	| bra_expression INC
@@ -296,8 +303,7 @@ loop_block_item
 loop_jump_statement
 	: CONT SEMICOLON
 	| BREAK SEMICOLON
-	| RET SEMICOLON
-	| RET expression_list SEMICOLON
+	| jump_statement
 ;
 
 

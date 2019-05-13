@@ -115,10 +115,10 @@ id			{letter}+({letter}|{digit})*
  /* others */
 
 [;]		{ return SEMICOLON; }
-[\n]		{  }
+[\n]		{ }
 [ \t]		{ } /* Ignore */
 [^ \t\n]	{ } /* Ignore other charactor sets */
-<<EOF>>		{ }
+<<EOF>>		{ yyterminate();}
 
 %%
 
