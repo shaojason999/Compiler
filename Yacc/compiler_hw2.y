@@ -166,7 +166,18 @@ block_item
 
 local_declaration
 	: type SEMICOLON
-	| type expression_list SEMICOLON
+	| type local_declarator_list SEMICOLON
+;
+
+local_declarator_list
+	: local_declarator
+	| local_declarator_list COMMA local_declarator
+;
+
+local_declarator
+	: ID
+	| ID ASGN assignment_expression
+	| ID ASGN STR_CONST
 ;
 
 expression_statement
