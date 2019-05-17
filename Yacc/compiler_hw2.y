@@ -65,33 +65,34 @@ program
 external_declaration
 	: function_declaration
 	| function_definition
-	| declaration
+	| global_declaration
 	| comment
 ;
 
-declaration
+global_declaration
 	: type SEMICOLON
-	| type declarator_list SEMICOLON
+	| type global_declarator_list SEMICOLON
 ;
 
-declarator_list
-	: declarator
-	| declarator_list COMMA declarator
+global_declarator_list
+	: global_declarator
+	| global_declarator_list COMMA global_declarator
 ;
 
-declarator
+global_declarator
 	: ID
-	| ID ASGN const
+	| ID ASGN only_const_operation
 ;
 
-const
+only_const_operation
+	: const_logical_or_expression
+;
+
+const_without_str
 	: I_CONST
 	| F_CONST
-	| STR_CONST
-/**/
 	| TRUE
 	| FALSE
-/**/
 ;
 
 type
@@ -158,30 +159,17 @@ block_item_list
 
 block_item
 	: statement
-	| block_declaration
+	| local_declaration
 	| function_definition
 ;
 
-block_declaration
+local_declaration
 	: type SEMICOLON
-	| type block_declarator_list SEMICOLON
-;
-
-block_declarator_list
-	: block_declarator
-	| block_declarator ASGN const
-	| block_declarator_list COMMA block_declarator
-	| block_declarator_list COMMA block_declarator ASGN const
-;
-
-block_declarator
-	: ID
-	| block_declarator ASGN ID
+	| type expression_list SEMICOLON
 ;
 
 expression_statement
 	: SEMICOLON
-	| LB RB SEMICOLON
 	| expression_list SEMICOLON
 ;
 
@@ -193,6 +181,7 @@ expression_list
 assignment_expression
 	: logical_or_expression
 	| ID assignment_operator assignment_expression
+	| ID ASGN STR_CONST
 ;
 
 assignment_operator
@@ -253,15 +242,63 @@ postfix_expression
 	: ID
 	| ID LB RB
 	| ID LB expression_list RB
-	| const
+	| const_without_str 
 	| LB expression_list RB
 	| bra_expression INC
-	| bra_expression DEC
+	| bra_expression DEC 
 ;
 
 bra_expression
 	: ID
 	| LB bra_expression RB
+;
+
+const_logical_or_expression
+	: const_logical_and_expression
+	| const_logical_or_expression OR const_logical_and_expression
+;
+
+const_logical_and_expression
+	: const_equality_expression
+	| const_logical_and_expression AND const_equality_expression
+;
+
+const_equality_expression
+	: const_relational_expression
+	| const_equality_expression EQ const_relational_expression
+	| const_equality_expression NE const_relational_expression
+;
+
+const_relational_expression
+	: const_additive_expression
+	| const_relational_expression MT const_additive_expression
+	| const_relational_expression LT const_additive_expression
+	| const_relational_expression MTE const_additive_expression
+	| const_relational_expression LTE const_additive_expression
+;
+
+const_additive_expression
+	: const_multiplicative_expression
+	| const_additive_expression ADD const_multiplicative_expression
+	| const_additive_expression SUB const_multiplicative_expression
+;
+
+const_multiplicative_expression
+	: const_prefix_expression
+	| const_multiplicative_expression MUL const_prefix_expression
+	| const_multiplicative_expression DIV const_prefix_expression
+	| const_multiplicative_expression MOD const_prefix_expression
+;
+
+const_prefix_expression
+	: const_postfix_expression
+	| ADD const_prefix_expression
+	| SUB const_prefix_expression
+;
+
+const_postfix_expression
+	: const_without_str
+	| LB const_logical_or_expression RB
 ;
 
 selection_statement
@@ -296,7 +333,7 @@ loop_block_item_list
 
 loop_block_item
 	: loop_statement
-	| block_declaration
+	| local_declaration
 	| function_definition
 ;
 
