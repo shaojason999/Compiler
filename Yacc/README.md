@@ -86,39 +86,51 @@
 * [參考網站](https://en.cppreference.com/w/c/language/operator_precedence)
 
 #### 4. declaration規則
-* global declaration只能給常數，不能有變數運算
+* global跟local跟差別
+    * global declaration只能給常數，不能有變數運算
+        ```C
+        /*legal*/
+        int a=3+3;
+
+        /*error: initializer element is not constant*/
+        int a;
+        int b=a+3;
+        ```
+    * local declaration可以有變數運算
+        ```C
+        /*legal*/
+        int a=b=c=d+1;
+
+        /*error: const can only occur in the rightmost assignment*/
+        int a=b+1=5;
+        ```
+    * 為了處理以上的不同，grammar分開寫
+        * global的用const_logical_or_expression系列去完成(等號右邊不會去用到任何variable)
+* assignment: 第一個一定要用=
     ```C
     /*legal*/
-    int a=3+3;
+    int a=5;
+    int b=b*5; /* only legal in local */
+    int c=a*=5; /* only legal in local */
 
-    /*error: initializer element is not constant*/
-    int a;
-    int b=a+3;
+    /* error: expected ‘=’, ‘,’, ‘;’, ‘asm’ or ‘__attribute__’ before ‘*=’ token */
+    int a*=5; /* you can replace it by: int a=a*5; */
     ```
-* local declaration可以有變數運算
-    ```C
-    /*legal*/
-    int a=b=c=d+1;
 
-    /*error: const can only occur in the rightmost assignment*/
-    int a=b+1=5;
-    ```
-* 為了處理以上的不同，grammar分開寫
-    * global的用const_logical_or_expression系列去完成
+#### 5. 這個作業的print不同於平常C裡面的printf
+* printf被視為function call
+* 但在這個作業print被視為一個專門的語法，所以我的處理方式就不用function call去處理
 
-5. 這個作業的print不同於平常C裡面的printf
-    * printf被視為function call
-    * 但在這個作業print被視為一個專門的語法，所以我的處理方式就不用function call去處理
+##### 6. function call
+* 在這個作業當中被我用expression文法去處理(被當作運算中的operand(有可能沒有operator))。但其實專門設一個function call的statement文法應該會比較好
 
-6. function call在這個作業當中被我用expression文法去處理(被當作運算中的operand(當然有可能沒有operator))。但其實專門設一個function call的statement文法應該會比較好
-
-7. void的部分我沒有特別去處理，比如
-    ```C
-    /* error: void value not ignored*/
-    void a(){}
-    int b=a();
-    ```
-    * 這個應該要是error的，但我的這個作業中沒有去處理這個部分
+#### 7. void的部分我沒有特別去處理，比如我沒處理以下這個: 
+```C
+/* error: void value not ignored*/
+void a(){}
+int b=a();
+```
+* 這個應該要是error的，但我的這個作業中沒有去處理這個部分
 
 ## 觀念釐清
 1. 沒有被 %token 或是 %left 等方式定義的grammar rule裡出現的符號，都會被當成nonterminal
