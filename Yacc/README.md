@@ -81,6 +81,45 @@
     ```
 * [參考資料](https://stackoverflow.com/questions/12876543/left-and-right-in-yacc)
 
+#### 3. precedence
+* precedence藉由grammar rule一層一層往下來達成
+* [參考網站](https://en.cppreference.com/w/c/language/operator_precedence)
+
+#### 4. declaration規則
+* global declaration只能給常數，不能有變數運算
+    ```C
+    /*legal*/
+    int a=3+3;
+
+    /*error: initializer element is not constant*/
+    int a;
+    int b=a+3;
+    ```
+* local declaration可以有變數運算
+    ```C
+    /*legal*/
+    int a=b=c=d+1;
+
+    /*error: const can only occur in the rightmost assignment*/
+    int a=b+1=5;
+    ```
+* 為了處理以上的不同，grammar分開寫
+    * global的用const_logical_or_expression系列去完成
+
+5. 這個作業的print不同於平常C裡面的printf
+    * printf被視為function call
+    * 但在這個作業print被視為一個專門的語法，所以我的處理方式就不用function call去處理
+
+6. function call在這個作業當中被我用expression文法去處理(被當作運算中的operand(當然有可能沒有operator))。但其實專門設一個function call的statement文法應該會比較好
+
+7. void的部分我沒有特別去處理，比如
+    ```C
+    /* error: void value not ignored*/
+    void a(){}
+    int b=a();
+    ```
+    * 這個應該要是error的，但我的這個作業中沒有去處理這個部分
+
 ## 觀念釐清
 1. 沒有被 %token 或是 %left 等方式定義的grammar rule裡出現的符號，都會被當成nonterminal
     * 也就是說nonterminal不需要特別定義
@@ -101,6 +140,29 @@
     %type <f_val> stat
     ```
     
+4. const (以下這些我都有特別處理)
+* a\++; 的回傳值為數字，不是變數
+    ```C
+    /*illegal*/
+    int a;
+    a++=5;
+    ```
+* a*=1;
+    ```C
+    /*legal*/
+    int a,b,c;
+    a*=b*=c*=1;
+    ```
+* string的比較特別
+    ```C
+    char a,b;
+
+    /* warning: assignment makes integer from pointer without a cast */
+    a*=b="a";
+
+    /* error: invalid operands to binary * (have ‘int’ and char *’) */
+    a*="a";
+    ```
 ## 其他注意事項
 1. lex檔裡的return要放在BEGIN後面
 ```
@@ -111,9 +173,23 @@
 <COMMENT>"*/"           { BEGIN INITIAL; return C_COMMENT;}
 ```
 
-2. lex檔裡的<<EOF>>要特別處理:  [參考資料](http://dinosaur.compilertools.net/flex/flex_13.html)
+2. 即使文法沒有完全符合，還是有可能執行{}的指令，比如:
+* input為: 
+    ```
+    while (n > m) {
+        n--;
+    ```
+* grammar為: 
+    ```
+    iteration_statement
+        : WHILE{printf("%d\n",yylineno);} LB expression_list RB loop_compound_statement
+    ```
+* 結果輸出為0(第0行)
+* 這可能跟yacc為LALR(1)，只看下一個terminal有關
+
+3. lex檔裡的<<EOF>>要特別處理:  [參考資料](http://dinosaur.compilertools.net/flex/flex_13.html)
     * 其中一個方法是yyterminate();
 
-3. grammar參考 [ANSI C Yacc grammar](http://www.quut.com/c/ANSI-C-grammar-y.html#jump_statement)
+4. grammar參考 [ANSI C Yacc grammar](http://www.quut.com/c/ANSI-C-grammar-y.html#jump_statement)
     * 可是這個範例裡面問題超多，參考就好
     * 主要還是自己寫及修改
