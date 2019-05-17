@@ -82,6 +82,7 @@ global_declarator_list
 global_declarator
 	: ID
 	| ID ASGN only_const_operation
+	| ID ASGN STR_CONST
 ;
 
 only_const_operation
