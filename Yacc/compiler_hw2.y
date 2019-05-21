@@ -2,6 +2,7 @@
 %{
 #include <stdio.h>
 #include <stdbool.h>
+#include <string.h>
 
 extern int yylineno;
 extern int yylex();
@@ -400,6 +401,10 @@ int main(int argc, char** argv)
 
 void yyerror(char *s)
 {
+    char temp[256];
+    memset(temp,0,sizeof(temp));
+    strncpy(temp,buf,strlen(buf)-1);	//discard the unmatched token
+    printf("%d: %s",++yylineno,temp);
     printf("\n|-----------------------------------------------|\n");
     printf("| Error found in line %d: %s\n", yylineno, buf);
     printf("| %s", s);

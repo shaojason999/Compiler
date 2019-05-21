@@ -29,95 +29,95 @@ id			{letter}+({letter}|{digit})*
 %%
 
  /* Arithmetic */
-"+"     { return ADD; }
-"-" 	{ return SUB; }
-"*" 	{ return MUL; }
-"/" 	{ return DIV; }
-"%"     { return MOD; }
-"++"    { return INC; }
-"--"    { return DEC; }
+"+"     { CONCAT return ADD; }
+"-" 	{ CONCAT return SUB; }
+"*" 	{ CONCAT return MUL; }
+"/" 	{ CONCAT return DIV; }
+"%"     { CONCAT return MOD; }
+"++"    { CONCAT return INC; }
+"--"    { CONCAT return DEC; }
 
  /* Relational */
-">"	{ return MT; }
-"<"	{ return LT; }
-">="	{ return MTE; }
-"<="	{ return LTE; }
-"=="	{ return EQ; }
-"!="	{ return NE; }
+">"	{ CONCAT return MT; }
+"<"	{ CONCAT return LT; }
+">="	{ CONCAT return MTE; }
+"<="	{ CONCAT return LTE; }
+"=="	{ CONCAT return EQ; }
+"!="	{ CONCAT return NE; }
 
  /* Assignment */
-"="	{ return ASGN; }
-"+="	{ return ADDASGN; }
-"-="	{ return SUBASGN; }
-"*="	{ return MULASGN; }
-"/="	{ return DIVASGN; }
-"%="	{ return MODASGN; }
+"="	{ CONCAT return ASGN; }
+"+="	{ CONCAT return ADDASGN; }
+"-="	{ CONCAT return SUBASGN; }
+"*="	{ CONCAT return MULASGN; }
+"/="	{ CONCAT return DIVASGN; }
+"%="	{ CONCAT return MODASGN; }
 
  /* Logical */
-"&&"	{ return AND; }
-"||"	{ return OR; }
-"!"	{ return NOT; }
+"&&"	{ CONCAT return AND; }
+"||"	{ CONCAT return OR; }
+"!"	{ CONCAT return NOT; }
 
  /* Delimiters */
-"("	{ return LB; }
-")"	{ return RB; }
-"{"	{ return LCB; }
-"}"	{ return RCB; }
-"["	{ return LSB; }
-"]"	{ return RSB; }
-","	{ return COMMA; }
+"("	{ CONCAT return LB; }
+")"	{ CONCAT return RB; }
+"{"	{ CONCAT return LCB; }
+"}"	{ CONCAT return RCB; }
+"["	{ CONCAT return LSB; }
+"]"	{ CONCAT return RSB; }
+","	{ CONCAT return COMMA; }
 
  /* Print Keywords */	
-"print"		{ return PRINT; }
+"print"		{ CONCAT return PRINT; }
 
  /* Condition and Loop Keywords */
-"if"		{ return IF; }
-"else"		{ return ELSE; }
-"for"		{ return FOR; }
-"while"		{ return WHILE; }
-"return"    	{ return RET; }
-"continue"  	{ return CONT; }
-"break"     	{ return BREAK; }
+"if"		{ CONCAT return IF; }
+"else"		{ CONCAT return ELSE; }
+"for"		{ CONCAT return FOR; }
+"while"		{ CONCAT return WHILE; }
+"return"    	{ CONCAT return RET; }
+"continue"  	{ CONCAT return CONT; }
+"break"     	{ CONCAT return BREAK; }
 
  /* Declaration Keywords */
-"void"		{ return VOID; }
-"int"		{ return INT; }
-"float"  	{ return FLOAT; }
-"string"  	{ return STRING; }
-"bool"  	{ return BOOL; }
+"void"		{ CONCAT return VOID; }
+"int"		{ CONCAT return INT; }
+"float"  	{ CONCAT return FLOAT; }
+"string"  	{ CONCAT return STRING; }
+"bool"  	{ CONCAT return BOOL; }
 
  /* boolean Keywords */
-"true"      { return TRUE; }
-"false"     { return FALSE; }
+"true"      { CONCAT return TRUE; }
+"false"     { CONCAT return FALSE; }
 
  /* String Constant */
-\"			{ BEGIN STRING_STATE; }
-<STRING_STATE>\"	{ BEGIN INITIAL; return STR_CONST;}
-<STRING_STATE>[^"]*	{  }
+\"			{ BEGIN STRING_STATE; CONCAT }
+<STRING_STATE>\"	{ BEGIN INITIAL; CONCAT return STR_CONST;}
+<STRING_STATE>[^"]*	{ CONCAT }
 
  /* Number Constant */
-{integer}	{ return I_CONST; }
-{float}		{ return F_CONST; }
+{integer}	{ CONCAT return I_CONST; }
+{float}		{ CONCAT return F_CONST; }
 
  /* C type Comment */
-"/*"			{ BEGIN COMMENT; }
-<COMMENT>[^*\n]+	{  }
-<COMMENT>\n		{  }
-<COMMENT>"*"		{  }
-<COMMENT>"*/"		{ BEGIN INITIAL; return C_COMMENT;}
+"/*"			{ BEGIN COMMENT; CONCAT }
+<COMMENT>[^*\n]+	{ CONCAT }
+<COMMENT>\n		{ CONCAT printf("%d: %s",yylineno,buf); memset(buf,0,sizeof(buf));}
+<COMMENT>"*"		{ CONCAT }
+<COMMENT>"*/"		{ BEGIN INITIAL; CONCAT return C_COMMENT;}
 
  /* C++ type Comment */
-\/\/.*	{ return CPP_COMMENT; }
+\/\/.*	{ CONCAT return CPP_COMMENT; }
 
  /* Variable ID */
- {id}       { return ID; }
+ {id}       { CONCAT return ID; }
 
  /* others */
 
-[;]		{ return SEMICOLON; }
-[\n]		{ }
-[ \t]		{ } /* Ignore */
-[^ \t\n]	{ } /* Ignore other charactor sets */
+[;]		{ CONCAT return SEMICOLON; }
+[\n]		{ CONCAT printf("%d: %s",yylineno,buf); memset(buf,0,sizeof(buf));}
+[ \t]		{ CONCAT } /* Ignore */
+[^ \t\n]	{ CONCAT } /* Ignore other charactor sets */
 <<EOF>>		{ yyterminate();}
 
 %%

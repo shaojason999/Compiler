@@ -900,319 +900,319 @@ do_action:	/* This label is used only to access EOF actions. */
 case 1:
 YY_RULE_SETUP
 #line 32 "compiler_hw2.l"
-{ return ADD; }
+{ CONCAT return ADD; }
 	YY_BREAK
 case 2:
 YY_RULE_SETUP
 #line 33 "compiler_hw2.l"
-{ return SUB; }
+{ CONCAT return SUB; }
 	YY_BREAK
 case 3:
 YY_RULE_SETUP
 #line 34 "compiler_hw2.l"
-{ return MUL; }
+{ CONCAT return MUL; }
 	YY_BREAK
 case 4:
 YY_RULE_SETUP
 #line 35 "compiler_hw2.l"
-{ return DIV; }
+{ CONCAT return DIV; }
 	YY_BREAK
 case 5:
 YY_RULE_SETUP
 #line 36 "compiler_hw2.l"
-{ return MOD; }
+{ CONCAT return MOD; }
 	YY_BREAK
 case 6:
 YY_RULE_SETUP
 #line 37 "compiler_hw2.l"
-{ return INC; }
+{ CONCAT return INC; }
 	YY_BREAK
 case 7:
 YY_RULE_SETUP
 #line 38 "compiler_hw2.l"
-{ return DEC; }
+{ CONCAT return DEC; }
 	YY_BREAK
 /* Relational */
 case 8:
 YY_RULE_SETUP
 #line 41 "compiler_hw2.l"
-{ return MT; }
+{ CONCAT return MT; }
 	YY_BREAK
 case 9:
 YY_RULE_SETUP
 #line 42 "compiler_hw2.l"
-{ return LT; }
+{ CONCAT return LT; }
 	YY_BREAK
 case 10:
 YY_RULE_SETUP
 #line 43 "compiler_hw2.l"
-{ return MTE; }
+{ CONCAT return MTE; }
 	YY_BREAK
 case 11:
 YY_RULE_SETUP
 #line 44 "compiler_hw2.l"
-{ return LTE; }
+{ CONCAT return LTE; }
 	YY_BREAK
 case 12:
 YY_RULE_SETUP
 #line 45 "compiler_hw2.l"
-{ return EQ; }
+{ CONCAT return EQ; }
 	YY_BREAK
 case 13:
 YY_RULE_SETUP
 #line 46 "compiler_hw2.l"
-{ return NE; }
+{ CONCAT return NE; }
 	YY_BREAK
 /* Assignment */
 case 14:
 YY_RULE_SETUP
 #line 49 "compiler_hw2.l"
-{ return ASGN; }
+{ CONCAT return ASGN; }
 	YY_BREAK
 case 15:
 YY_RULE_SETUP
 #line 50 "compiler_hw2.l"
-{ return ADDASGN; }
+{ CONCAT return ADDASGN; }
 	YY_BREAK
 case 16:
 YY_RULE_SETUP
 #line 51 "compiler_hw2.l"
-{ return SUBASGN; }
+{ CONCAT return SUBASGN; }
 	YY_BREAK
 case 17:
 YY_RULE_SETUP
 #line 52 "compiler_hw2.l"
-{ return MULASGN; }
+{ CONCAT return MULASGN; }
 	YY_BREAK
 case 18:
 YY_RULE_SETUP
 #line 53 "compiler_hw2.l"
-{ return DIVASGN; }
+{ CONCAT return DIVASGN; }
 	YY_BREAK
 case 19:
 YY_RULE_SETUP
 #line 54 "compiler_hw2.l"
-{ return MODASGN; }
+{ CONCAT return MODASGN; }
 	YY_BREAK
 /* Logical */
 case 20:
 YY_RULE_SETUP
 #line 57 "compiler_hw2.l"
-{ return AND; }
+{ CONCAT return AND; }
 	YY_BREAK
 case 21:
 YY_RULE_SETUP
 #line 58 "compiler_hw2.l"
-{ return OR; }
+{ CONCAT return OR; }
 	YY_BREAK
 case 22:
 YY_RULE_SETUP
 #line 59 "compiler_hw2.l"
-{ return NOT; }
+{ CONCAT return NOT; }
 	YY_BREAK
 /* Delimiters */
 case 23:
 YY_RULE_SETUP
 #line 62 "compiler_hw2.l"
-{ return LB; }
+{ CONCAT return LB; }
 	YY_BREAK
 case 24:
 YY_RULE_SETUP
 #line 63 "compiler_hw2.l"
-{ return RB; }
+{ CONCAT return RB; }
 	YY_BREAK
 case 25:
 YY_RULE_SETUP
 #line 64 "compiler_hw2.l"
-{ return LCB; }
+{ CONCAT return LCB; }
 	YY_BREAK
 case 26:
 YY_RULE_SETUP
 #line 65 "compiler_hw2.l"
-{ return RCB; }
+{ CONCAT return RCB; }
 	YY_BREAK
 case 27:
 YY_RULE_SETUP
 #line 66 "compiler_hw2.l"
-{ return LSB; }
+{ CONCAT return LSB; }
 	YY_BREAK
 case 28:
 YY_RULE_SETUP
 #line 67 "compiler_hw2.l"
-{ return RSB; }
+{ CONCAT return RSB; }
 	YY_BREAK
 case 29:
 YY_RULE_SETUP
 #line 68 "compiler_hw2.l"
-{ return COMMA; }
+{ CONCAT return COMMA; }
 	YY_BREAK
 /* Print Keywords */	
 case 30:
 YY_RULE_SETUP
 #line 71 "compiler_hw2.l"
-{ return PRINT; }
+{ CONCAT return PRINT; }
 	YY_BREAK
 /* Condition and Loop Keywords */
 case 31:
 YY_RULE_SETUP
 #line 74 "compiler_hw2.l"
-{ return IF; }
+{ CONCAT return IF; }
 	YY_BREAK
 case 32:
 YY_RULE_SETUP
 #line 75 "compiler_hw2.l"
-{ return ELSE; }
+{ CONCAT return ELSE; }
 	YY_BREAK
 case 33:
 YY_RULE_SETUP
 #line 76 "compiler_hw2.l"
-{ return FOR; }
+{ CONCAT return FOR; }
 	YY_BREAK
 case 34:
 YY_RULE_SETUP
 #line 77 "compiler_hw2.l"
-{ return WHILE; }
+{ CONCAT return WHILE; }
 	YY_BREAK
 case 35:
 YY_RULE_SETUP
 #line 78 "compiler_hw2.l"
-{ return RET; }
+{ CONCAT return RET; }
 	YY_BREAK
 case 36:
 YY_RULE_SETUP
 #line 79 "compiler_hw2.l"
-{ return CONT; }
+{ CONCAT return CONT; }
 	YY_BREAK
 case 37:
 YY_RULE_SETUP
 #line 80 "compiler_hw2.l"
-{ return BREAK; }
+{ CONCAT return BREAK; }
 	YY_BREAK
 /* Declaration Keywords */
 case 38:
 YY_RULE_SETUP
 #line 83 "compiler_hw2.l"
-{ return VOID; }
+{ CONCAT return VOID; }
 	YY_BREAK
 case 39:
 YY_RULE_SETUP
 #line 84 "compiler_hw2.l"
-{ return INT; }
+{ CONCAT return INT; }
 	YY_BREAK
 case 40:
 YY_RULE_SETUP
 #line 85 "compiler_hw2.l"
-{ return FLOAT; }
+{ CONCAT return FLOAT; }
 	YY_BREAK
 case 41:
 YY_RULE_SETUP
 #line 86 "compiler_hw2.l"
-{ return STRING; }
+{ CONCAT return STRING; }
 	YY_BREAK
 case 42:
 YY_RULE_SETUP
 #line 87 "compiler_hw2.l"
-{ return BOOL; }
+{ CONCAT return BOOL; }
 	YY_BREAK
 /* boolean Keywords */
 case 43:
 YY_RULE_SETUP
 #line 90 "compiler_hw2.l"
-{ return TRUE; }
+{ CONCAT return TRUE; }
 	YY_BREAK
 case 44:
 YY_RULE_SETUP
 #line 91 "compiler_hw2.l"
-{ return FALSE; }
+{ CONCAT return FALSE; }
 	YY_BREAK
 /* String Constant */
 case 45:
 YY_RULE_SETUP
 #line 94 "compiler_hw2.l"
-{ BEGIN STRING_STATE; }
+{ BEGIN STRING_STATE; CONCAT }
 	YY_BREAK
 case 46:
 YY_RULE_SETUP
 #line 95 "compiler_hw2.l"
-{ BEGIN INITIAL; return STR_CONST;}
+{ BEGIN INITIAL; CONCAT return STR_CONST;}
 	YY_BREAK
 case 47:
 /* rule 47 can match eol */
 YY_RULE_SETUP
 #line 96 "compiler_hw2.l"
-{  }
+{ CONCAT }
 	YY_BREAK
 /* Number Constant */
 case 48:
 YY_RULE_SETUP
 #line 99 "compiler_hw2.l"
-{ return I_CONST; }
+{ CONCAT return I_CONST; }
 	YY_BREAK
 case 49:
 YY_RULE_SETUP
 #line 100 "compiler_hw2.l"
-{ return F_CONST; }
+{ CONCAT return F_CONST; }
 	YY_BREAK
 /* C type Comment */
 case 50:
 YY_RULE_SETUP
 #line 103 "compiler_hw2.l"
-{ BEGIN COMMENT; }
+{ BEGIN COMMENT; CONCAT }
 	YY_BREAK
 case 51:
 YY_RULE_SETUP
 #line 104 "compiler_hw2.l"
-{  }
+{ CONCAT }
 	YY_BREAK
 case 52:
 /* rule 52 can match eol */
 YY_RULE_SETUP
 #line 105 "compiler_hw2.l"
-{  }
+{ CONCAT printf("%d: %s",yylineno,buf); memset(buf,0,sizeof(buf));}
 	YY_BREAK
 case 53:
 YY_RULE_SETUP
 #line 106 "compiler_hw2.l"
-{  }
+{ CONCAT }
 	YY_BREAK
 case 54:
 YY_RULE_SETUP
 #line 107 "compiler_hw2.l"
-{ BEGIN INITIAL; return C_COMMENT;}
+{ BEGIN INITIAL; CONCAT return C_COMMENT;}
 	YY_BREAK
 /* C++ type Comment */
 case 55:
 YY_RULE_SETUP
 #line 110 "compiler_hw2.l"
-{ return CPP_COMMENT; }
+{ CONCAT return CPP_COMMENT; }
 	YY_BREAK
 /* Variable ID */
 case 56:
 YY_RULE_SETUP
 #line 113 "compiler_hw2.l"
-{ return ID; }
+{ CONCAT return ID; }
 	YY_BREAK
 /* others */
 case 57:
 YY_RULE_SETUP
 #line 117 "compiler_hw2.l"
-{ return SEMICOLON; }
+{ CONCAT return SEMICOLON; }
 	YY_BREAK
 case 58:
 /* rule 58 can match eol */
 YY_RULE_SETUP
 #line 118 "compiler_hw2.l"
-{ }
+{ CONCAT printf("%d: %s",yylineno,buf); memset(buf,0,sizeof(buf));}
 	YY_BREAK
 case 59:
 YY_RULE_SETUP
 #line 119 "compiler_hw2.l"
-{ } /* Ignore */
+{ CONCAT } /* Ignore */
 	YY_BREAK
 case 60:
 YY_RULE_SETUP
 #line 120 "compiler_hw2.l"
-{ } /* Ignore other charactor sets */
+{ CONCAT } /* Ignore other charactor sets */
 	YY_BREAK
 case YY_STATE_EOF(INITIAL):
 case YY_STATE_EOF(COMMENT):

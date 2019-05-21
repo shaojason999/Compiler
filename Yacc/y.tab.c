@@ -66,6 +66,7 @@
 
 #include <stdio.h>
 #include <stdbool.h>
+#include <string.h>
 
 extern int yylineno;
 extern int yylex();
@@ -80,7 +81,7 @@ void insert_symbol();
 void dump_symbol();
 
 
-#line 84 "y.tab.c" /* yacc.c:339  */
+#line 85 "y.tab.c" /* yacc.c:339  */
 
 # ifndef YY_NULLPTR
 #  if defined __cplusplus && 201103L <= __cplusplus
@@ -226,14 +227,14 @@ extern int yydebug;
 
 union YYSTYPE
 {
-#line 23 "compiler_hw2.y" /* yacc.c:355  */
+#line 24 "compiler_hw2.y" /* yacc.c:355  */
 
     int i_val;
     double f_val;
     char* string;
     bool boolean;
 
-#line 237 "y.tab.c" /* yacc.c:355  */
+#line 238 "y.tab.c" /* yacc.c:355  */
 };
 
 typedef union YYSTYPE YYSTYPE;
@@ -250,7 +251,7 @@ int yyparse (void);
 
 /* Copy the second part of user declarations.  */
 
-#line 254 "y.tab.c" /* yacc.c:358  */
+#line 255 "y.tab.c" /* yacc.c:358  */
 
 #ifdef short
 # undef short
@@ -552,21 +553,21 @@ static const yytype_uint8 yytranslate[] =
   /* YYRLINE[YYN] -- Source line where rule number YYN was defined.  */
 static const yytype_uint16 yyrline[] =
 {
-       0,    61,    61,    62,    66,    67,    68,    69,    73,    74,
-      78,    79,    83,    84,    85,    89,    93,    94,    95,    96,
-     100,   101,   102,   103,   104,   108,   109,   113,   114,   118,
-     119,   123,   124,   125,   126,   127,   128,   132,   133,   137,
-     138,   142,   143,   147,   148,   152,   153,   157,   158,   162,
-     163,   164,   168,   169,   173,   174,   178,   179,   180,   184,
-     185,   189,   190,   194,   195,   196,   200,   201,   202,   203,
-     204,   205,   209,   210,   214,   215,   219,   220,   221,   225,
-     226,   227,   228,   229,   233,   234,   235,   239,   240,   241,
-     242,   246,   247,   248,   254,   255,   256,   257,   258,   259,
-     260,   264,   265,   269,   270,   274,   275,   279,   280,   281,
-     285,   286,   287,   288,   289,   293,   294,   295,   299,   300,
-     301,   302,   306,   307,   308,   312,   313,   317,   318,   319,
-     323,   327,   328,   329,   330,   331,   332,   333,   337,   338,
-     342,   343,   347,   348,   349,   353,   354,   355
+       0,    62,    62,    63,    67,    68,    69,    70,    74,    75,
+      79,    80,    84,    85,    86,    90,    94,    95,    96,    97,
+     101,   102,   103,   104,   105,   109,   110,   114,   115,   119,
+     120,   124,   125,   126,   127,   128,   129,   133,   134,   138,
+     139,   143,   144,   148,   149,   153,   154,   158,   159,   163,
+     164,   165,   169,   170,   174,   175,   179,   180,   181,   185,
+     186,   190,   191,   195,   196,   197,   201,   202,   203,   204,
+     205,   206,   210,   211,   215,   216,   220,   221,   222,   226,
+     227,   228,   229,   230,   234,   235,   236,   240,   241,   242,
+     243,   247,   248,   249,   255,   256,   257,   258,   259,   260,
+     261,   265,   266,   270,   271,   275,   276,   280,   281,   282,
+     286,   287,   288,   289,   290,   294,   295,   296,   300,   301,
+     302,   303,   307,   308,   309,   313,   314,   318,   319,   320,
+     324,   328,   329,   330,   331,   332,   333,   334,   338,   339,
+     343,   344,   348,   349,   350,   354,   355,   356
 };
 #endif
 
@@ -1540,7 +1541,7 @@ yyreduce:
   switch (yyn)
     {
       
-#line 1544 "y.tab.c" /* yacc.c:1646  */
+#line 1545 "y.tab.c" /* yacc.c:1646  */
       default: break;
     }
   /* User semantic actions sometimes alter yychar, and that requires
@@ -1768,7 +1769,7 @@ yyreturn:
 #endif
   return yyresult;
 }
-#line 388 "compiler_hw2.y" /* yacc.c:1906  */
+#line 389 "compiler_hw2.y" /* yacc.c:1906  */
 
 
 /* C code section */
@@ -1784,6 +1785,10 @@ int main(int argc, char** argv)
 
 void yyerror(char *s)
 {
+    char temp[256];
+    memset(temp,0,sizeof(temp));
+    strncpy(temp,buf,strlen(buf)-1);	//discard the unmatched token
+    printf("%d: %s",++yylineno,temp);
     printf("\n|-----------------------------------------------|\n");
     printf("| Error found in line %d: %s\n", yylineno, buf);
     printf("| %s", s);
