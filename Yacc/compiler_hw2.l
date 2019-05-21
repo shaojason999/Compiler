@@ -6,7 +6,10 @@
 
 #define BUF_SIZE 256
 
+extern void Sem_Err();
+
 extern YYSTYPE yylval; //YYSTYPE
+extern int Error;
 char buf[BUF_SIZE];
 
 /* This macro is used to record code line */
@@ -80,11 +83,11 @@ id			{letter}+({letter}|{digit})*
 "break"     	{ CONCAT return BREAK; }
 
  /* Declaration Keywords */
-"void"		{ CONCAT return VOID; }
-"int"		{ CONCAT return INT; }
-"float"  	{ CONCAT return FLOAT; }
-"string"  	{ CONCAT return STRING; }
-"bool"  	{ CONCAT return BOOL; }
+"void"		{ CONCAT yylval.string=strdup(yytext); return VOID; }
+"int"		{ CONCAT yylval.string=strdup(yytext); return INT; }
+"float"  	{ CONCAT yylval.string=strdup(yytext); return FLOAT; }
+"string"  	{ CONCAT yylval.string=strdup(yytext); return STRING; }
+"bool"  	{ CONCAT yylval.string=strdup(yytext); return BOOL; }
 
  /* boolean Keywords */
 "true"      { CONCAT return TRUE; }
@@ -96,8 +99,8 @@ id			{letter}+({letter}|{digit})*
 <STRING_STATE>[^"]*	{ CONCAT }
 
  /* Number Constant */
-{integer}	{ CONCAT return I_CONST; }
-{float}		{ CONCAT return F_CONST; }
+{integer}	{ CONCAT; yylval.i_val=atoi(yytext); return I_CONST; }
+{float}		{ CONCAT; yylval.f_val=atof(yytext); return F_CONST; }
 
  /* C type Comment */
 "/*"			{ BEGIN COMMENT; CONCAT }
@@ -110,12 +113,16 @@ id			{letter}+({letter}|{digit})*
 \/\/.*	{ CONCAT return CPP_COMMENT; }
 
  /* Variable ID */
- {id}       { CONCAT return ID; }
+ {id}       { CONCAT yylval.string=strdup(yytext); return ID; }
 
  /* others */
 
 [;]		{ CONCAT return SEMICOLON; }
-[\n]		{ CONCAT printf("%d: %s",yylineno,buf); memset(buf,0,sizeof(buf));}
+[\n]		{ CONCAT printf("%d: %s",yylineno,buf); 
+			if(Error!=-1)
+				Sem_Err();
+			Error=-1;
+			memset(buf,0,sizeof(buf));}
 [ \t]		{ CONCAT } /* Ignore */
 [^ \t\n]	{ CONCAT } /* Ignore other charactor sets */
 <<EOF>>		{ yyterminate();}

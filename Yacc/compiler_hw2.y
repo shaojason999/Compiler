@@ -26,13 +26,16 @@ struct SYMBOL_TABLE{
 
 /*the current scope; the current max index of the current scope; where is the indexes(entry number)*/
 int Scope, Index[SCOPE], order[SCOPE][ENTRY];
+
+int Result,Error,Par_count;
+char Type[10],Kind[10],Error_ID[30],Par[10][10];
 struct SYMBOL_TABLE sym_table[SCOPE][ENTRY];
 
 /* Symbol table function - you can add new function if needed. */
-void create_symbol(int scope);
-int insert_symbol(char *id, int scope);
-int lookup_symbol(char *id, int scope);
-void dump_symbol(int scope, int index);
+void create_symbol();
+int insert_symbol(char *id);
+int lookup_symbol(char *id);
+void dump_symbol(int index);
 
 %}
 
@@ -54,22 +57,22 @@ void dump_symbol(int scope, int index);
 %token LB RB LCB RCB LSB RSB COMMA
 %token PRINT
 %token IF ELSE FOR WHILE RET CONT BREAK
-%token VOID INT FLOAT STRING BOOL
 %token TRUE FALSE
 %token STR_CONST
 %token I_CONST F_CONST
 %token C_COMMENT
 %token CPP_COMMENT
-%token ID
 %token SEMICOLON
 
 /* Token with return, which need to sepcify type */
 //%token <i_val> I_CONST
 //%token <f_val> F_CONST
 //%token <string> STRING
+%token <string> ID VOID INT FLOAT STRING BOOL
 
 /* Nonterminal with return, which need to sepcify type */
 //%type <f_val> stat
+%type <string> type
 
 /* Yacc will start at this nonterminal */
 %start program
@@ -82,14 +85,14 @@ program
 ;
 
 external_declaration
-	: function_declaration
+	: function_declaration	{/*Par_count, Par*/}
 	| function_definition
 	| global_declaration
 	| comment
 ;
 
 global_declaration
-	: type SEMICOLON
+	: type {strcpy(Type,$1); strcpy(Kind,"variable");} SEMICOLON
 	| type global_declarator_list SEMICOLON
 ;
 
@@ -99,7 +102,13 @@ global_declarator_list
 ;
 
 global_declarator
-	: ID
+	: ID {
+		Result=insert_symbol($1);
+		if(Result==-1){	//redefined
+			Error=2;
+			strcpy(Error_ID,$1);
+		}
+		}
 	| ID ASGN only_const_operation
 	| ID ASGN STR_CONST
 ;
@@ -116,11 +125,11 @@ const_without_str
 ;
 
 type
-	: VOID
-	| INT
-	| FLOAT
-	| STRING
-	| BOOL
+	: VOID {$$=$1;}
+	| INT {$$=$1;}
+	| FLOAT {$$=$1;}
+	| STRING {$$=$1;}
+	| BOOL {$$=$1;}
 ;
 
 function_declaration
@@ -374,36 +383,6 @@ loop_jump_statement
 	| jump_statement
 ;
 
-
-
-/*
-program
-    : program stat
-    |
-;
-
-stat
-    : declaration
-    | compound_stat
-    | expression_stat
-    | print_func
-;
-
-declaration
-    : type ID '=' initializer SEMICOLON
-    | type ID SEMICOLON
-;
-
-// actions can be taken when meet the token or rule
-
-type
-    : INT { $$ = $1; }
-    | FLOAT { $$ = $1; }
-    | BOOL  { $$ = $1; }
-    | STRING { $$ = $1; }
-    | VOID { $$ = $1; }
-;
-*/
 %%
 /* C code section */
 
@@ -412,6 +391,7 @@ void init()
 	int i,j;
 	yylineno = 0;
 	Scope=0;
+	Error=-1;
 	for(i=0;i<SCOPE;++i)
 		Index[i]=-1;
 	for(i=0;i<SCOPE;++i)
@@ -429,16 +409,39 @@ int main(int argc, char** argv)
 	return 0;
 }
 
+void Sem_Err()
+{
+	char *s;
+	if(Error==0)
+		s="Undeclared variable";
+	else if(Error==1)
+		s="Undeclared function";
+	else if(Error==2)
+		s="Redeclared variable";
+	else if(Error==3)
+		s="Redeclared function";
+	
+	printf("\n|-----------------------------------------------|\n");
+	printf("| Error found in line %d: %s\n", yylineno, buf);
+	printf("| %s %s", s, Error_ID);
+	printf("\n|-----------------------------------------------|\n\n");
+
+
+}
+
 void yyerror(char *s)
 {
-    char temp[256];
-    memset(temp,0,sizeof(temp));
-    strncpy(temp,buf,strlen(buf)-1);	//discard the unmatched token
-    printf("%d: %s",++yylineno,temp);
-    printf("\n|-----------------------------------------------|\n");
-    printf("| Error found in line %d: %s\n", yylineno, buf);
-    printf("| %s", s);
-    printf("\n|-----------------------------------------------|\n\n");
+	if(Error!=-1)
+		Sem_Err();
+
+	char temp[256];
+	memset(temp,0,sizeof(temp));
+	strncpy(temp,buf,strlen(buf)-1);	//discard the unmatched token
+	printf("%d: %s",++yylineno,temp);
+	printf("\n|-----------------------------------------------|\n");
+	printf("| Error found in line %d: %s\n", yylineno, buf);
+	printf("| %s", s);
+	printf("\n|-----------------------------------------------|\n\n");
 }
 
 int hash(char *id, int num)
@@ -451,37 +454,46 @@ int hash(char *id, int num)
 	return sum;
 }
 
-void create_symbol(int scope)
+void create_symbol()
 {
 	/*reset all*/
 	int i,j;
-	memset(sym_table[scope],0,sizeof(sym_table[scope]));
+	memset(sym_table[Scope+1],0,sizeof(sym_table[Scope+1]));
 	for(i=0;i<ENTRY;++i){
-		sym_table[scope][i].index=-1;
-		sym_table[scope][i].scope=-1;
-		sym_table[scope][i].par_count=-1;
+		sym_table[Scope+1][i].index=-1;
+		sym_table[Scope+1][i].scope=-1;
+		sym_table[Scope+1][i].par_count=-1;
 	}
 }
 
-int insert_symbol(char *id, int scope)
+int insert_symbol(char *id)
 {
-	int index,i;
+	int index,i,j;
 	/*only find in this scope*/
 	for(i=0;i<1000;++i){
 		index=hash(id,i);
-		if(sym_table[scope][index].index==-1){	//found the empty entry
-			sym_table[scope][index].index=Index[scope]++;
-			
+		if(sym_table[Scope][index].index==-1){	//found the empty entry
+			sym_table[Scope][index].index=++Index[Scope];
+			strcpy(sym_table[Scope][index].name,id);
+			strcpy(sym_table[Scope][index].name,Kind);
+			strcpy(sym_table[Scope][index].type,Type);
+			sym_table[Scope][index].index=Scope;
+			sym_table[Scope][index].par_count=Par_count;
+			for(j=0;j<Par_count;++j)
+				strcpy(sym_table[Scope][index].par[j],Par[j]);
+
+			order[Scope][Index[Scope]]=index;
+
 			return 1;
 		}
-		else if(strcmp(sym_table[scope][index].name,id)==0)	//already exists
+		else if(strcmp(sym_table[Scope][index].name,id)==0)	//already exists
 			return -1;
 	}
 }
 
-int lookup_symbol(char *id, int scope)
+int lookup_symbol(char *id)
 {
-	int index,i;
+	int index,i,scope=Scope;
 	for(;scope>=0;--scope){
 		for(i=0;i<1000;++i){
 			index=hash(id,i);
@@ -498,28 +510,22 @@ int lookup_symbol(char *id, int scope)
 	return -1;	//not found in any scope level
 }
 
-void dump_symbol(int scope, int index) {
+void dump_symbol(int index) {
     int i,j,entry;
     printf("\n%-10s%-10s%-12s%-10s%-10s%-10s\n\n",
            "Index", "Name", "Kind", "Type", "Scope", "Attribute");
 
     for(i=0;i<index;++i){
-    	    entry=order[scope][i];
+    	    entry=order[Scope][i];
 	    printf("%-10d%-10s%-12s%-10s%-10d",
-    		   i,sym_table[scope][entry].name,sym_table[scope][entry].kind,sym_table[scope][entry].type,sym_table[scope][entry].scope);
-	    if(sym_table[scope][entry].par_count!=-1)
-	    	printf("%s",sym_table[scope][entry].par[0]);
-	    for(j=1;j<sym_table[scope][entry].par_count;++j)
-		    printf(", %s",sym_table[scope][entry].par[j]);
+    		   i,sym_table[Scope][entry].name,sym_table[Scope][entry].kind,sym_table[Scope][entry].type,sym_table[Scope][entry].scope);
+	    if(sym_table[Scope][entry].par_count!=-1)
+	    	printf("%s",sym_table[Scope][entry].par[0]);
+	    for(j=1;j<sym_table[Scope][entry].par_count;++j)
+		    printf(", %s",sym_table[Scope][entry].par[j]);
 	    printf("\n");
     }
 
 }
-
-
-
-
-
-
 
 
