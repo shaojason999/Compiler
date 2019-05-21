@@ -67,6 +67,10 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <string.h>
+#include <stdlib.h>
+
+#define SCOPE 10
+#define ENTRY 100
 
 extern int yylineno;
 extern int yylex();
@@ -74,14 +78,28 @@ extern void yyerror(char *s);
 extern char* yytext;   // Get current token from lex
 extern char buf[256];  // Get current code line from lex
 
+struct SYMBOL_TABLE{
+	int index;
+	char name[30];
+	char kind[10];	// "function" or "parameter" or "variable"
+	char type[10];	// "int" or float or bool or string or void
+	int scope;
+	int par_count;	// record how many parameters in par[]
+	char par[10][10];
+};
+
+/*the current scope; the current max index of the current scope; where is the indexes(entry number)*/
+int Scope, Index[SCOPE], order[SCOPE][ENTRY];
+struct SYMBOL_TABLE sym_table[SCOPE][ENTRY];
+
 /* Symbol table function - you can add new function if needed. */
-int lookup_symbol();
-void create_symbol();
-void insert_symbol();
-void dump_symbol();
+void create_symbol(int scope);
+int insert_symbol(char *id, int scope);
+int lookup_symbol(char *id, int scope);
+void dump_symbol(int scope, int index);
 
 
-#line 85 "y.tab.c" /* yacc.c:339  */
+#line 103 "y.tab.c" /* yacc.c:339  */
 
 # ifndef YY_NULLPTR
 #  if defined __cplusplus && 201103L <= __cplusplus
@@ -227,14 +245,14 @@ extern int yydebug;
 
 union YYSTYPE
 {
-#line 24 "compiler_hw2.y" /* yacc.c:355  */
+#line 42 "compiler_hw2.y" /* yacc.c:355  */
 
     int i_val;
     double f_val;
     char* string;
     bool boolean;
 
-#line 238 "y.tab.c" /* yacc.c:355  */
+#line 256 "y.tab.c" /* yacc.c:355  */
 };
 
 typedef union YYSTYPE YYSTYPE;
@@ -251,7 +269,7 @@ int yyparse (void);
 
 /* Copy the second part of user declarations.  */
 
-#line 255 "y.tab.c" /* yacc.c:358  */
+#line 273 "y.tab.c" /* yacc.c:358  */
 
 #ifdef short
 # undef short
@@ -553,21 +571,21 @@ static const yytype_uint8 yytranslate[] =
   /* YYRLINE[YYN] -- Source line where rule number YYN was defined.  */
 static const yytype_uint16 yyrline[] =
 {
-       0,    62,    62,    63,    67,    68,    69,    70,    74,    75,
-      79,    80,    84,    85,    86,    90,    94,    95,    96,    97,
-     101,   102,   103,   104,   105,   109,   110,   114,   115,   119,
-     120,   124,   125,   126,   127,   128,   129,   133,   134,   138,
-     139,   143,   144,   148,   149,   153,   154,   158,   159,   163,
-     164,   165,   169,   170,   174,   175,   179,   180,   181,   185,
-     186,   190,   191,   195,   196,   197,   201,   202,   203,   204,
-     205,   206,   210,   211,   215,   216,   220,   221,   222,   226,
-     227,   228,   229,   230,   234,   235,   236,   240,   241,   242,
-     243,   247,   248,   249,   255,   256,   257,   258,   259,   260,
-     261,   265,   266,   270,   271,   275,   276,   280,   281,   282,
-     286,   287,   288,   289,   290,   294,   295,   296,   300,   301,
-     302,   303,   307,   308,   309,   313,   314,   318,   319,   320,
-     324,   328,   329,   330,   331,   332,   333,   334,   338,   339,
-     343,   344,   348,   349,   350,   354,   355,   356
+       0,    80,    80,    81,    85,    86,    87,    88,    92,    93,
+      97,    98,   102,   103,   104,   108,   112,   113,   114,   115,
+     119,   120,   121,   122,   123,   127,   128,   132,   133,   137,
+     138,   142,   143,   144,   145,   146,   147,   151,   152,   156,
+     157,   161,   162,   166,   167,   171,   172,   176,   177,   181,
+     182,   183,   187,   188,   192,   193,   197,   198,   199,   203,
+     204,   208,   209,   213,   214,   215,   219,   220,   221,   222,
+     223,   224,   228,   229,   233,   234,   238,   239,   240,   244,
+     245,   246,   247,   248,   252,   253,   254,   258,   259,   260,
+     261,   265,   266,   267,   273,   274,   275,   276,   277,   278,
+     279,   283,   284,   288,   289,   293,   294,   298,   299,   300,
+     304,   305,   306,   307,   308,   312,   313,   314,   318,   319,
+     320,   321,   325,   326,   327,   331,   332,   336,   337,   338,
+     342,   346,   347,   348,   349,   350,   351,   352,   356,   357,
+     361,   362,   366,   367,   368,   372,   373,   374
 };
 #endif
 
@@ -1541,7 +1559,7 @@ yyreduce:
   switch (yyn)
     {
       
-#line 1545 "y.tab.c" /* yacc.c:1646  */
+#line 1563 "y.tab.c" /* yacc.c:1646  */
       default: break;
     }
   /* User semantic actions sometimes alter yychar, and that requires
@@ -1769,18 +1787,30 @@ yyreturn:
 #endif
   return yyresult;
 }
-#line 389 "compiler_hw2.y" /* yacc.c:1906  */
-
+#line 407 "compiler_hw2.y" /* yacc.c:1906  */
 
 /* C code section */
+
+void init()
+{
+	int i,j;
+	yylineno = 0;
+	Scope=0;
+	for(i=0;i<SCOPE;++i)
+		Index[i]=-1;
+	for(i=0;i<SCOPE;++i)
+		for(j=0;j<ENTRY;++j)
+			order[i][j]=-1;
+}
+
 int main(int argc, char** argv)
 {
-    yylineno = 0;
+	init();
 
-    yyparse();
+	yyparse();
 	printf("\nTotal lines: %d \n",yylineno);
 
-    return 0;
+	return 0;
 }
 
 void yyerror(char *s)
@@ -1795,10 +1825,85 @@ void yyerror(char *s)
     printf("\n|-----------------------------------------------|\n\n");
 }
 
-void create_symbol() {}
-void insert_symbol() {}
-int lookup_symbol() {}
-void dump_symbol() {
+int hash(char *id, int num)
+{
+	/*sum of each char + num^2 (if collision)*/
+	int i,sum=0;
+	for(i=0;id[i]!='\0';++i)
+		sum+=id[i];
+	sum+=num*num;
+	return sum;
+}
+
+void create_symbol(int scope)
+{
+	/*reset all*/
+	int i,j;
+	memset(sym_table[scope],0,sizeof(sym_table[scope]));
+	for(i=0;i<ENTRY;++i){
+		sym_table[scope][i].index=-1;
+		sym_table[scope][i].scope=-1;
+		sym_table[scope][i].par_count=-1;
+	}
+}
+
+int insert_symbol(char *id, int scope)
+{
+	int index,i;
+	/*only find in this scope*/
+	for(i=0;i<1000;++i){
+		index=hash(id,i);
+		if(sym_table[scope][index].index==-1){	//found the empty entry
+			sym_table[scope][index].index=Index[scope]++;
+			
+			return 1;
+		}
+		else if(strcmp(sym_table[scope][index].name,id)==0)	//already exists
+			return -1;
+	}
+}
+
+int lookup_symbol(char *id, int scope)
+{
+	int index,i;
+	for(;scope>=0;--scope){
+		for(i=0;i<1000;++i){
+			index=hash(id,i);
+			if(sym_table[scope][index].index==-1)	//empty entry (not found)
+				continue;
+			else if(strcmp(sym_table[scope][index].name,id)==0)	//already exists
+				return 1;
+		}
+		if(i==1000){
+			printf("symbol table is too small\n");
+			exit(-1);
+		}
+	}
+	return -1;	//not found in any scope level
+}
+
+void dump_symbol(int scope, int index) {
+    int i,j,entry;
     printf("\n%-10s%-10s%-12s%-10s%-10s%-10s\n\n",
            "Index", "Name", "Kind", "Type", "Scope", "Attribute");
+
+    for(i=0;i<index;++i){
+    	    entry=order[scope][i];
+	    printf("%-10d%-10s%-12s%-10s%-10d",
+    		   i,sym_table[scope][entry].name,sym_table[scope][entry].kind,sym_table[scope][entry].type,sym_table[scope][entry].scope);
+	    if(sym_table[scope][entry].par_count!=-1)
+	    	printf("%s",sym_table[scope][entry].par[0]);
+	    for(j=1;j<sym_table[scope][entry].par_count;++j)
+		    printf(", %s",sym_table[scope][entry].par[j]);
+	    printf("\n");
+    }
+
 }
+
+
+
+
+
+
+
+

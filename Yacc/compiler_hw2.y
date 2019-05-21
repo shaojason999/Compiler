@@ -3,6 +3,10 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <string.h>
+#include <stdlib.h>
+
+#define SCOPE 10
+#define ENTRY 100
 
 extern int yylineno;
 extern int yylex();
@@ -10,11 +14,25 @@ extern void yyerror(char *s);
 extern char* yytext;   // Get current token from lex
 extern char buf[256];  // Get current code line from lex
 
+struct SYMBOL_TABLE{
+	int index;
+	char name[30];
+	char kind[10];	// "function" or "parameter" or "variable"
+	char type[10];	// "int" or float or bool or string or void
+	int scope;
+	int par_count;	// record how many parameters in par[]
+	char par[10][10];
+};
+
+/*the current scope; the current max index of the current scope; where is the indexes(entry number)*/
+int Scope, Index[SCOPE], order[SCOPE][ENTRY];
+struct SYMBOL_TABLE sym_table[SCOPE][ENTRY];
+
 /* Symbol table function - you can add new function if needed. */
-int lookup_symbol();
-void create_symbol();
-void insert_symbol();
-void dump_symbol();
+void create_symbol(int scope);
+int insert_symbol(char *id, int scope);
+int lookup_symbol(char *id, int scope);
+void dump_symbol(int scope, int index);
 
 %}
 
@@ -387,16 +405,28 @@ type
 ;
 */
 %%
-
 /* C code section */
+
+void init()
+{
+	int i,j;
+	yylineno = 0;
+	Scope=0;
+	for(i=0;i<SCOPE;++i)
+		Index[i]=-1;
+	for(i=0;i<SCOPE;++i)
+		for(j=0;j<ENTRY;++j)
+			order[i][j]=-1;
+}
+
 int main(int argc, char** argv)
 {
-    yylineno = 0;
+	init();
 
-    yyparse();
+	yyparse();
 	printf("\nTotal lines: %d \n",yylineno);
 
-    return 0;
+	return 0;
 }
 
 void yyerror(char *s)
@@ -411,10 +441,85 @@ void yyerror(char *s)
     printf("\n|-----------------------------------------------|\n\n");
 }
 
-void create_symbol() {}
-void insert_symbol() {}
-int lookup_symbol() {}
-void dump_symbol() {
+int hash(char *id, int num)
+{
+	/*sum of each char + num^2 (if collision)*/
+	int i,sum=0;
+	for(i=0;id[i]!='\0';++i)
+		sum+=id[i];
+	sum+=num*num;
+	return sum;
+}
+
+void create_symbol(int scope)
+{
+	/*reset all*/
+	int i,j;
+	memset(sym_table[scope],0,sizeof(sym_table[scope]));
+	for(i=0;i<ENTRY;++i){
+		sym_table[scope][i].index=-1;
+		sym_table[scope][i].scope=-1;
+		sym_table[scope][i].par_count=-1;
+	}
+}
+
+int insert_symbol(char *id, int scope)
+{
+	int index,i;
+	/*only find in this scope*/
+	for(i=0;i<1000;++i){
+		index=hash(id,i);
+		if(sym_table[scope][index].index==-1){	//found the empty entry
+			sym_table[scope][index].index=Index[scope]++;
+			
+			return 1;
+		}
+		else if(strcmp(sym_table[scope][index].name,id)==0)	//already exists
+			return -1;
+	}
+}
+
+int lookup_symbol(char *id, int scope)
+{
+	int index,i;
+	for(;scope>=0;--scope){
+		for(i=0;i<1000;++i){
+			index=hash(id,i);
+			if(sym_table[scope][index].index==-1)	//empty entry (not found)
+				continue;
+			else if(strcmp(sym_table[scope][index].name,id)==0)	//already exists
+				return 1;
+		}
+		if(i==1000){
+			printf("symbol table is too small\n");
+			exit(-1);
+		}
+	}
+	return -1;	//not found in any scope level
+}
+
+void dump_symbol(int scope, int index) {
+    int i,j,entry;
     printf("\n%-10s%-10s%-12s%-10s%-10s%-10s\n\n",
            "Index", "Name", "Kind", "Type", "Scope", "Attribute");
+
+    for(i=0;i<index;++i){
+    	    entry=order[scope][i];
+	    printf("%-10d%-10s%-12s%-10s%-10d",
+    		   i,sym_table[scope][entry].name,sym_table[scope][entry].kind,sym_table[scope][entry].type,sym_table[scope][entry].scope);
+	    if(sym_table[scope][entry].par_count!=-1)
+	    	printf("%s",sym_table[scope][entry].par[0]);
+	    for(j=1;j<sym_table[scope][entry].par_count;++j)
+		    printf(", %s",sym_table[scope][entry].par[j]);
+	    printf("\n");
+    }
+
 }
+
+
+
+
+
+
+
+
