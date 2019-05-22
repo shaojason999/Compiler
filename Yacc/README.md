@@ -121,7 +121,7 @@
 * printf被視為function call
 * 但在這個作業print被視為一個專門的語法，所以我的處理方式就不用function call去處理
 
-##### 6. function call
+#### 6. function call
 * 在這個作業當中被我用expression文法去處理(被當作運算中的operand(有可能沒有operator))。但其實專門設一個function call的statement文法應該會比較好
 
 #### 7. void的部分我沒有特別去處理，比如我沒處理以下這個: 
@@ -145,14 +145,39 @@ int b=a();
     * 如果是terminal的話，值就是從lex的yylval取得
     * 一般來說可能不需要計算，只有當你可能想要在parse的某個時候print出來目前算到的值時，才會需要。不過，這不是parser本來應該有的功能
     * 可以參考以下這個很清楚的範例[UVa 11291](http://morris821028.github.io/2014/05/12/oj/uva/uva-11291-with-yacc/)
-3. (我猜)在yacc中terminal或nonterminal就算有return，也不一定要指定是哪一種形式啦，比如說:
-    * 除非有做一些$$ = $1 + $3; 這種運算可能才要
+3. 在yacc中terminal或nonterminal只要有return，就一定要指定是哪一種形式啦，比如說:
     ```
-    %token <string> STRING
-    %type <f_val> stat
+    global_declarator
+                : ID {strcpy(Variable,$1);}
     ```
-    
-4. const (以下這些我都有特別處理)
+    * 因為strcpy只接受char*的type，所以你需要事先在最yacc delcarations區打上類似以下的宣告
+    ```
+    %token <string> ID
+    ```
+    * 如果是nonterminal，則是如下
+    ```
+    %type <string> stat
+    ```
+    * 以上兩種<>裡的東西是定義在union裡的variable
+  
+4. conflict rules
+    ```
+    global_declaration
+                : type SEMICOLON
+                | type {printf("%d\n");}
+                    global_declarator_list SEMICOLON
+    ;
+    ```
+    * 像這樣$ yacc .y檔會出現warning: rule useless in parser due to conflicts。
+    * 我覺得是因為有ambiguous。因為一旦print，就表示只能走這條了，而這樣的情況yacc不允許，因此這條grammar會被yacc丟掉，因此不會用到
+        * 比如: 輸入 int a... 可能會是global_dec或是function，因為讀到int(type)時還無法判斷，因此有ambiguous，此時不能有action(print)，因為一旦做了這件事，就只能走其中一條了
+            * 如果每條都有action，則保留最上面那條
+
+    解決方法:  
+    * 解決ambiguous(改寫規則)
+    * 或是把{action}加在別的地方
+  
+5. const (以下這些我都有特別處理)
 * a\++; 的回傳值為數字，不是變數
     ```C
     /*illegal*/
@@ -205,3 +230,10 @@ int b=a();
 4. grammar參考 [ANSI C Yacc grammar](http://www.quut.com/c/ANSI-C-grammar-y.html#jump_statement)
     * 可是這個範例裡面問題超多，參考就好
     * 主要還是自己寫及修改
+
+---
+### 參考資料
+[symbol table](https://www.iis.sinica.edu.tw/~tshsu/compiler/2005/slides/slide5.pdf)
+[ANSI C Yacc grammar](http://www.quut.com/c/ANSI-C-grammar-y.html#jump_statement)
+[UVa 11291](http://morris821028.github.io/2014/05/12/oj/uva/uva-11291-with-yacc/)
+[Precedence](https://en.cppreference.com/w/c/language/operator_precedence)
