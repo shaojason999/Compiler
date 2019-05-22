@@ -28,12 +28,12 @@ struct SYMBOL_TABLE{
 int Scope, Index[SCOPE], order[SCOPE][ENTRY];
 
 int Result,Error,Par_count;
-char Type[10],Kind[10],Error_ID[30],Par[10][10];
+char Variable[30],Type[10],Kind[10],Error_ID[30],Par[10][10];
 struct SYMBOL_TABLE sym_table[SCOPE][ENTRY];
 
 /* Symbol table function - you can add new function if needed. */
 void create_symbol();
-int insert_symbol(char *id);
+int insert_symbol();
 int lookup_symbol(char *id);
 void dump_symbol(int index);
 
@@ -85,32 +85,42 @@ program
 ;
 
 external_declaration
-	: function_declaration	{/*Par_count, Par*/}
-	| function_definition
+	: function	{/*Par_count, Par*/}
+
+/*	| function_definition*/
 	| global_declaration
 	| comment
 ;
 
 global_declaration
-	: type {strcpy(Type,$1); strcpy(Kind,"variable");} SEMICOLON
+	: type SEMICOLON
 	| type global_declarator_list SEMICOLON
 ;
 
 global_declarator_list
-	: global_declarator
-	| global_declarator_list COMMA global_declarator
+	: global_declarator {
+		strcpy(Kind,"variable");
+		Par_count=0;
+		Result=insert_symbol();
+		if(Result==-1){	//redefined
+			Error=2;
+			strcpy(Error_ID,Variable);
+		}} 
+	| global_declarator_list COMMA global_declarator {
+		strcpy(Kind,"variable");
+		Par_count=0;
+		Result=insert_symbol();
+		if(Result==-1){	//redefined
+			Error=2;
+			strcpy(Error_ID,Variable);
+		}} 
 ;
 
 global_declarator
-	: ID {
-		Result=insert_symbol($1);
-		if(Result==-1){	//redefined
-			Error=2;
-			strcpy(Error_ID,$1);
-		}
-		}
-	| ID ASGN only_const_operation
-	| ID ASGN STR_CONST
+	: ID {strcpy(Variable,$1);}
+	| ID ASGN only_const_operation {strcpy(Variable,$1);}
+	| ID ASGN STR_CONST {strcpy(Variable,$1);}
+
 ;
 
 only_const_operation
@@ -125,26 +135,60 @@ const_without_str
 ;
 
 type
-	: VOID {$$=$1;}
-	| INT {$$=$1;}
-	| FLOAT {$$=$1;}
-	| STRING {$$=$1;}
-	| BOOL {$$=$1;}
+	: VOID {strcpy(Type,$1); $$=$1;}
+	| INT  {strcpy(Type,$1); $$=$1;}
+	| FLOAT  {strcpy(Type,$1); $$=$1;}
+	| STRING  {strcpy(Type,$1); $$=$1;}
+	| BOOL  {strcpy(Type,$1); $$=$1;}
 ;
 
-function_declaration
-	: type ID LB RB SEMICOLON
-	| type ID LB function_parameter_list RB SEMICOLON
-;
-
-function_definition
-	: type ID LB RB compound_statement
-	| type ID LB function_parameter_list RB compound_statement
+function
+	: type ID LB RB SEMICOLON {
+		strcpy(Variable, $2);
+		strcpy(Kind,"function");
+		Par_count=0;
+		Result=insert_symbol();
+		if(Result==-1){	//redeclare function
+			Error=3;
+			strcpy(Error_ID,Variable);
+		}}
+	| type ID LB function_parameter_list RB SEMICOLON {
+		strcpy(Variable, $2);
+		strcpy(Kind,"function");
+		strcpy(Type,$1);
+		Result=insert_symbol();
+		if(Result==-1){	//redeclare function
+			Error=3;
+			strcpy(Error_ID,Variable);
+		}}
+	| type ID LB RB {
+		strcpy(Variable,$2);
+		strcpy(Kind,"function");
+		Result=insert_symbol();
+		if(Result==-1){	//redeclare function
+			Error=3;
+			strcpy(Error_ID,Variable);
+		}}	
+	compound_statement
+	| type ID LB function_parameter_list RB {
+		strcpy(Variable,$2);
+		strcpy(Kind,"function");
+		strcpy(Type,$1);
+		Result=insert_symbol();
+		if(Result==-1){	//redeclare function
+			Error=3;
+			strcpy(Error_ID,Variable);
+		}}	
+	compound_statement
 ;
 
 function_parameter_list
-	: type ID
-	| function_parameter_list COMMA type ID
+	: type ID {
+		strcpy(Par[Par_count++],Type);
+		}
+	| function_parameter_list COMMA type ID {
+		strcpy(Par[Par_count++],Type);
+		}
 ;
 
 statement
@@ -189,7 +233,8 @@ block_item_list
 block_item
 	: statement
 	| local_declaration
-	| function_definition
+/*	| function_definition*/
+	| function
 ;
 
 local_declaration
@@ -374,7 +419,8 @@ loop_block_item_list
 loop_block_item
 	: loop_statement
 	| local_declaration
-	| function_definition
+/*	| function_definition*/
+	| function
 ;
 
 loop_jump_statement
@@ -385,29 +431,6 @@ loop_jump_statement
 
 %%
 /* C code section */
-
-void init()
-{
-	int i,j;
-	yylineno = 0;
-	Scope=0;
-	Error=-1;
-	for(i=0;i<SCOPE;++i)
-		Index[i]=-1;
-	for(i=0;i<SCOPE;++i)
-		for(j=0;j<ENTRY;++j)
-			order[i][j]=-1;
-}
-
-int main(int argc, char** argv)
-{
-	init();
-
-	yyparse();
-	printf("\nTotal lines: %d \n",yylineno);
-
-	return 0;
-}
 
 void Sem_Err()
 {
@@ -451,43 +474,47 @@ int hash(char *id, int num)
 	for(i=0;id[i]!='\0';++i)
 		sum+=id[i];
 	sum+=num*num;
+	sum%=97;	//a prime number;
+//printf("hash: %s %d %d %d \n\n",id,num,i,sum);
 	return sum;
 }
 
 void create_symbol()
 {
+	++Scope;
 	/*reset all*/
 	int i,j;
-	memset(sym_table[Scope+1],0,sizeof(sym_table[Scope+1]));
+	memset(sym_table[Scope],0,sizeof(sym_table[Scope]));
 	for(i=0;i<ENTRY;++i){
-		sym_table[Scope+1][i].index=-1;
-		sym_table[Scope+1][i].scope=-1;
-		sym_table[Scope+1][i].par_count=-1;
+		sym_table[Scope][i].index=-1;
+		sym_table[Scope][i].scope=-1;
+		sym_table[Scope][i].par_count=-1;
 	}
 }
 
-int insert_symbol(char *id)
+int insert_symbol()
 {
 	int index,i,j;
 	/*only find in this scope*/
 	for(i=0;i<1000;++i){
-		index=hash(id,i);
+		index=hash(Variable,i);
 		if(sym_table[Scope][index].index==-1){	//found the empty entry
 			sym_table[Scope][index].index=++Index[Scope];
-			strcpy(sym_table[Scope][index].name,id);
-			strcpy(sym_table[Scope][index].name,Kind);
+			strcpy(sym_table[Scope][index].name,Variable);
+			strcpy(sym_table[Scope][index].kind,Kind);
 			strcpy(sym_table[Scope][index].type,Type);
-			sym_table[Scope][index].index=Scope;
+			sym_table[Scope][index].scope=Scope;
 			sym_table[Scope][index].par_count=Par_count;
 			for(j=0;j<Par_count;++j)
 				strcpy(sym_table[Scope][index].par[j],Par[j]);
-
+			Par_count=0;
 			order[Scope][Index[Scope]]=index;
-
 			return 1;
 		}
-		else if(strcmp(sym_table[Scope][index].name,id)==0)	//already exists
+		else if(strcmp(sym_table[Scope][index].name,Variable)==0){	//already exists
+			Par_count=0;
 			return -1;
+		}
 	}
 }
 
@@ -515,7 +542,7 @@ void dump_symbol(int index) {
     printf("\n%-10s%-10s%-12s%-10s%-10s%-10s\n\n",
            "Index", "Name", "Kind", "Type", "Scope", "Attribute");
 
-    for(i=0;i<index;++i){
+    for(i=0;i<=index;++i){
     	    entry=order[Scope][i];
 	    printf("%-10d%-10s%-12s%-10s%-10d",
     		   i,sym_table[Scope][entry].name,sym_table[Scope][entry].kind,sym_table[Scope][entry].type,sym_table[Scope][entry].scope);
@@ -525,7 +552,42 @@ void dump_symbol(int index) {
 		    printf(", %s",sym_table[Scope][entry].par[j]);
 	    printf("\n");
     }
+//    --Scope;
 
 }
 
+void init()
+{
+	int i,j;
+	yylineno = 0;
+	Error=-1;
+	for(i=0;i<SCOPE;++i)
+		Index[i]=-1;
+	for(i=0;i<SCOPE;++i)
+		for(j=0;j<ENTRY;++j)
+			order[i][j]=-1;
+	/*
+	strcpy(Variable,"");
+	strcpy(Kind,"");
+	strcpy(Type,"");
+	for(i=0;i<10;++i)
+		strcpy(Par[i],"");*/
+
+	Scope=-1;
+	Par_count=0;
+}
+
+int main(int argc, char** argv)
+{
+	init();
+	create_symbol();
+
+	yyparse();
+
+	dump_symbol(Index[0]);
+
+	printf("\nTotal lines: %d \n",yylineno);
+
+	return 0;
+}
 
