@@ -4,7 +4,11 @@
 
 float c = 1.5;
 
-bool loop();
+int b;
+
+bool loop(int n,int m);
+
+int asd;
 
 bool loop(int n, int m) {
     while (n > m) {
@@ -34,6 +38,8 @@ int main() {
 
     eee=eee+1;
 
+    eee=b+1;
+
     a=e+1;
 
     e=a+1;
@@ -44,7 +50,7 @@ int main() {
         // Undeclared variable
         print(b);
     } else {
-        x = a % 10 + 10 * 7; /* Arithmetic */
+        x = a % 10 + 10 * 7;
     }
     print("Hello World");
 

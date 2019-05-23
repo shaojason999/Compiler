@@ -37,6 +37,7 @@ char Par[10][10],Par_id[10][30];
 struct SYMBOL_TABLE sym_table[SCOPE][ENTRY];
 
 /* Symbol table function - you can add new function if needed. */
+int find_the_function_index(char *);
 void create_symbol();
 int insert_symbol();
 int lookup_symbol(char *id);
@@ -182,6 +183,8 @@ function
 		}
 	}compound_statement
 	| type ID LB function_parameter_list RB {
+		int temp_count;
+		temp_count=Par_count;
 		strcpy(Variable,$2);
 		strcpy(Kind,"function");
 		strcpy(Type,$1);
@@ -192,6 +195,7 @@ function
 			strcpy(Error_ID,Variable);
 		}
 		function_flag=1;
+		Par_count=temp_count;
 	}compound_statement
 ;
 
@@ -226,7 +230,6 @@ print_statement
 	: PRINT LB ID {
 		Result=lookup_symbol($3);
 		if(Result!=0){
-		printf("123 %d\n",Result);
 			Error=Result;
 			strcpy(Error_ID,$3);
 		}
@@ -244,44 +247,41 @@ jump_statement
 	| RET statement_with_return
 ;
 
+
 compound_statement
 	: LCB {
 		create_symbol();
-		/*for function parameter*/
 		if(function_flag){
-			int i;
-			for(i=0;i<sym_table[Scope-1][order[Scope-1][Index[Scope-1]]].par_count;++i){
+			int i,count;
+			count=Par_count;
+			for(i=0;i<count;++i){
 				strcpy(Variable,Par_id[i]);
 				strcpy(Kind,"parameter");
 				strcpy(Type,Par[i]);
 				Par_count=0;
 				Result=insert_symbol();
 				if(Result!=0 && Error==0){	//redefine variable
-			printf("345\n");
 					Error=Result;
 					strcpy(Error_ID,Variable);
 				}
 			}
 			function_flag=0;
 		}
-	} RCB {
+	}RCB {
 		dump_flag=1;
 	}
 	| LCB {
 		create_symbol();
-			printf("12345\n");
 		if(function_flag){
-			printf("12345\n");
-			int i;
-			for(i=0;i<sym_table[Scope-1][order[Scope-1][Index[Scope-1]]].par_count;++i){
+			int i,count;
+			count=Par_count;
+			for(i=0;i<count;++i){
 				strcpy(Variable,Par_id[i]);
 				strcpy(Kind,"parameter");
 				strcpy(Type,Par[i]);
 				Par_count=0;
 				Result=insert_symbol();
-			printf("234\n");
 				if(Result!=0 && Error==0){	//redefine variable
-			printf("345\n");
 					Error=Result;
 					strcpy(Error_ID,Variable);
 				}
@@ -536,35 +536,37 @@ loop_selection_statement
 loop_compound_statement
 	: LCB {
 		create_symbol();
+		/*for function parameter*/
 		if(function_flag){
-			int i;
-			for(i=0;i<sym_table[Scope-1][order[Scope-1][Index[Scope-1]]].par_count;++i){
+			int i,index;
+			for(i=0;i<sym_table[Scope-1][order[Scope-1][index]].par_count;++i){
 				strcpy(Variable,Par_id[i]);
 				strcpy(Kind,"parameter");
 				strcpy(Type,Par[i]);
 				Par_count=0;
 				Result=insert_symbol();
-				if(Result!=0 && Error==-1){	//redefine variable
+				if(Result!=0 && Error==0){	//redefine variable
 					Error=Result;
 					strcpy(Error_ID,Variable);
 				}
 			}
 			function_flag=0;
 		}
-	} RCB {
+	}RCB {
 		dump_flag=1;
 	}
 	| LCB {
 		create_symbol();
+		/*for function parameter*/
 		if(function_flag){
-			int i;
-			for(i=0;i<sym_table[Scope-1][order[Scope-1][Index[Scope-1]]].par_count;++i){
+			int i,index;
+			for(i=0;i<sym_table[Scope-1][order[Scope-1][index]].par_count;++i){
 				strcpy(Variable,Par_id[i]);
 				strcpy(Kind,"parameter");
 				strcpy(Type,Par[i]);
 				Par_count=0;
 				Result=insert_symbol();
-				if(Result!=0 && Error==-1){	//redefine variable
+				if(Result!=0 && Error==0){	//redefine variable
 					Error=Result;
 					strcpy(Error_ID,Variable);
 				}
@@ -665,7 +667,6 @@ int insert_symbol()
 	for(i=0;i<1000;++i){
 		index=hash(Variable,i);
 		if(sym_table[Scope][index].index==-1){	//found the empty entry
-		printf("123\n");
 			sym_table[Scope][index].index=++Index[Scope];
 			strcpy(sym_table[Scope][index].name,Variable);
 			strcpy(sym_table[Scope][index].kind,Kind);
@@ -727,10 +728,10 @@ int lookup_symbol(char *id)
 		}
 	}
 	if(Function_status==2){	//function call
-		return 1;	//undeclared function
+		return 2;	//undeclared function
 	}
 	else if(Function_status==-1){	//not a function(is a variable)
-		return 2;	//undeclared variable (not found in any scope level)
+		return 1;	//undeclared variable (not found in any scope level)
 	}
 }
 
