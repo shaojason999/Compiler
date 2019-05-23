@@ -4,6 +4,8 @@
 
 float c = 1.5;
 
+bool loop();
+
 bool loop(int n, int m) {
     while (n > m) {
 	int a;
@@ -11,6 +13,10 @@ bool loop(int n, int m) {
     }
     return true;
 }
+
+bool loop();
+
+bool loop(){}
 
 int a(bool b){
         b++;

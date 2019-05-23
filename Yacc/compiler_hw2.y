@@ -22,12 +22,15 @@ struct SYMBOL_TABLE{
 	int scope;
 	int par_count;	// record how many parameters in par[]
 	char par[10][10];
+	int function_status;	//-1 for not a function, 0 for declared, 1 for defined, 2 for declared and defined
 };
 
 /*the current scope; the current max index of the current scope; where is the indexes(entry number)*/
 int Scope, Index[SCOPE], order[SCOPE][ENTRY];
 
-int Result,Error,Par_count;
+int Result,Par_count;
+int Error;	//0 for no error, 1 for undeclared var, 2 for undeclared func, 3 for redeclared var, 4 for redeclaration func
+int Function_status;	//-1 for not a function, 0 for declare, 1 for define
 int dump_flag,function_flag;
 char Variable[30],Type[10],Kind[10],Error_ID[30];
 char Par[10][10],Par_id[10][30];
@@ -104,8 +107,8 @@ global_declarator_list
 		strcpy(Kind,"variable");
 		Par_count=0;
 		Result=insert_symbol();
-		if(Result==-1){	//redefined
-			Error=2;
+		if(Result!=0){	//redeclared
+			Error=Result;
 			strcpy(Error_ID,Variable);
 		}
 	} 
@@ -113,8 +116,8 @@ global_declarator_list
 		strcpy(Kind,"variable");
 		Par_count=0;
 		Result=insert_symbol();
-		if(Result==-1){	//redefined
-			Error=2;
+		if(Result!=0){	//redeclared
+			Error=Result;
 			strcpy(Error_ID,Variable);
 		}
 	} 
@@ -150,26 +153,31 @@ function
 		strcpy(Variable, $2);
 		strcpy(Kind,"function");
 		Par_count=0;
+		Function_status=0;	//-1 for not a function, 0 for declare, 1 for define
 		Result=insert_symbol();
-		if(Result==-1){	//redeclare function
-			Error=3;
+		if(Result!=0){	//redeclare function
+			Error=Result;
 			strcpy(Error_ID,Variable);
-		}}
+		}
+	}
 	| type ID LB function_parameter_list RB SEMICOLON {
 		strcpy(Variable, $2);
 		strcpy(Kind,"function");
 		strcpy(Type,$1);
+		Function_status=0;	//-1 for not a function, 0 for declare, 1 for define
 		Result=insert_symbol();
-		if(Result==-1){	//redeclare function
-			Error=3;
+		if(Result!=0){	//redeclare function
+			Error=Result;
 			strcpy(Error_ID,Variable);
-		}}
+		}
+	}
 	| type ID LB RB {
 		strcpy(Variable,$2);
 		strcpy(Kind,"function");
+		Function_status=1;	//-1 for not a function, 0 for declare, 1 for define
 		Result=insert_symbol();
-		if(Result==-1){	//redeclare function
-			Error=3;
+		if(Result!=0){	//redeclare function
+			Error=Result;
 			strcpy(Error_ID,Variable);
 		}
 	}compound_statement
@@ -177,9 +185,10 @@ function
 		strcpy(Variable,$2);
 		strcpy(Kind,"function");
 		strcpy(Type,$1);
+		Function_status=1;	//-1 for not a function, 0 for declare, 1 for define
 		Result=insert_symbol();
-		if(Result==-1){	//redeclare function
-			Error=3;
+		if(Result!=0){	//redeclare function
+			Error=Result;
 			strcpy(Error_ID,Variable);
 		}
 		function_flag=1;
@@ -189,11 +198,12 @@ function
 function_parameter_list
 	: type ID {
 		strcpy(Par[Par_count],Type);
-		/*used for the local variable in function later*/
+		/*used for the local variable of function later*/
 		strcpy(Par_id[Par_count++],$2);
 	}
 	| function_parameter_list COMMA type ID {
 		strcpy(Par[Par_count],Type);
+		/*used for the local variable of function later*/
 		strcpy(Par_id[Par_count++],$4);
 	}
 ;
@@ -230,6 +240,7 @@ jump_statement
 compound_statement
 	: LCB {
 		create_symbol();
+		/*for function parameter*/
 		if(function_flag){
 			int i;
 			for(i=0;i<sym_table[Scope-1][order[Scope-1][Index[Scope-1]]].par_count;++i){
@@ -238,8 +249,8 @@ compound_statement
 				strcpy(Type,Par[i]);
 				Par_count=0;
 				Result=insert_symbol();
-				if(Result==-1 && Error==-1){	//redefine variable
-					Error=2;
+				if(Result!=0 && Error==-1){	//redefine variable
+					Error=Result;
 					strcpy(Error_ID,Variable);
 				}
 			}
@@ -258,8 +269,8 @@ compound_statement
 				strcpy(Type,Par[i]);
 				Par_count=0;
 				Result=insert_symbol();
-				if(Result==-1 && Error==-1){	//redefine variable
-					Error=2;
+				if(Result!=0 && Error==-1){	//redefine variable
+					Error=Result;
 					strcpy(Error_ID,Variable);
 				}
 			}
@@ -291,8 +302,8 @@ local_declarator_list
 		strcpy(Kind,"variable");
 		Par_count=0;
 		Result=insert_symbol();
-		if(Result==-1){	//redefined
-			Error=2;
+		if(Result!=0){	//redeclared
+			Error=Result;
 			strcpy(Error_ID,Variable);
 		}
 	} 
@@ -300,8 +311,8 @@ local_declarator_list
 		strcpy(Kind,"variable");
 		Par_count=0;
 		Result=insert_symbol();
-		if(Result==-1){	//redefined
-			Error=2;
+		if(Result!=0){	//redeclared
+			Error=Result;
 			strcpy(Error_ID,Variable);
 		}
 	} 
@@ -483,8 +494,8 @@ loop_compound_statement
 				strcpy(Type,Par[i]);
 				Par_count=0;
 				Result=insert_symbol();
-				if(Result==-1 && Error==-1){	//redefine variable
-					Error=2;
+				if(Result!=0 && Error==-1){	//redefine variable
+					Error=Result;
 					strcpy(Error_ID,Variable);
 				}
 			}
@@ -503,8 +514,8 @@ loop_compound_statement
 				strcpy(Type,Par[i]);
 				Par_count=0;
 				Result=insert_symbol();
-				if(Result==-1 && Error==-1){	//redefine variable
-					Error=2;
+				if(Result!=0 && Error==-1){	//redefine variable
+					Error=Result;
 					strcpy(Error_ID,Variable);
 				}
 			}
@@ -538,13 +549,13 @@ loop_jump_statement
 void Sem_Err()
 {
 	char *s;
-	if(Error==0)
+	if(Error==1)
 		s="Undeclared variable";
-	else if(Error==1)
-		s="Undeclared function";
 	else if(Error==2)
-		s="Redeclared variable";
+		s="Undeclared function";
 	else if(Error==3)
+		s="Redeclared variable";
+	else if(Error==4)
 		s="Redeclared function";
 	
 	printf("\n|-----------------------------------------------|\n");
@@ -590,6 +601,7 @@ void create_symbol()
 		sym_table[Scope][i].index=-1;
 		sym_table[Scope][i].scope=-1;
 		sym_table[Scope][i].par_count=-1;
+		sym_table[Scope][i].function_status=-1;
 	}
 	Index[Scope]=-1;
 }
@@ -609,13 +621,34 @@ int insert_symbol()
 			sym_table[Scope][index].par_count=Par_count;
 			for(j=0;j<Par_count;++j)
 				strcpy(sym_table[Scope][index].par[j],Par[j]);
+			if(strcmp(Kind,"function")==0)
+				sym_table[Scope][index].function_status=Function_status;
 			Par_count=0;
 			order[Scope][Index[Scope]]=index;
-			return 1;
+			return 0;
 		}
 		else if(strcmp(sym_table[Scope][index].name,Variable)==0){	//already exists
 			Par_count=0;
-			return -1;
+			if(sym_table[Scope][index].function_status==-1){	//not a function
+				return 3;	//redeclared variable
+			}
+			else if(sym_table[Scope][index].function_status==2){	//already declared and defined
+				return 4;	//redeclared function(don't care redefined in this version)
+			}
+			else if(sym_table[Scope][index].function_status==1 && Function_status==1){
+				return 5;	//redefined function
+			}
+			else if(sym_table[Scope][index].function_status==0 && Function_status==0){
+				return 4;	//redeclared function
+			}
+			else if(sym_table[Scope][index].function_status==0 && Function_status==1){
+				sym_table[Scope][index].function_status=2;	//declared and defined
+				return 0;
+			}
+			else if(sym_table[Scope][index].function_status==1 && Function_status==0){
+				sym_table[Scope][index].function_status=2;	//declared and defined
+				return 0;
+			}
 		}
 	}
 }
@@ -678,6 +711,7 @@ void init()
 
 	Scope=-1;
 	Par_count=0;
+	Function_status=-1;
 	dump_flag=0;
 	function_flag=0;
 }
