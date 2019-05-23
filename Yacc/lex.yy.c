@@ -1207,9 +1207,8 @@ case 58:
 /* rule 58 can match eol */
 YY_RULE_SETUP
 #line 123 "compiler_hw2.l"
-{ CONCAT printf("%d: %s",yylineno,buf); 
+{ CONCAT if(buf[0]=='\n') printf("%d:\n",yylineno); else printf("%d: %s",yylineno,buf); 
 			if(Error!=0){	//no error
-				printf("%d\n",Error);
 				Sem_Err();
 			}
 			Error=0;
@@ -1223,26 +1222,26 @@ YY_RULE_SETUP
 	YY_BREAK
 case 59:
 YY_RULE_SETUP
-#line 136 "compiler_hw2.l"
+#line 135 "compiler_hw2.l"
 { CONCAT } /* Ignore */
 	YY_BREAK
 case 60:
 YY_RULE_SETUP
-#line 137 "compiler_hw2.l"
+#line 136 "compiler_hw2.l"
 { CONCAT } /* Ignore other charactor sets */
 	YY_BREAK
 case YY_STATE_EOF(INITIAL):
 case YY_STATE_EOF(COMMENT):
 case YY_STATE_EOF(STRING_STATE):
-#line 138 "compiler_hw2.l"
+#line 137 "compiler_hw2.l"
 { yyterminate();}
 	YY_BREAK
 case 61:
 YY_RULE_SETUP
-#line 140 "compiler_hw2.l"
+#line 139 "compiler_hw2.l"
 ECHO;
 	YY_BREAK
-#line 1246 "lex.yy.c"
+#line 1245 "lex.yy.c"
 
 	case YY_END_OF_BUFFER:
 		{
@@ -2253,7 +2252,7 @@ void yyfree (void * ptr )
 
 #define YYTABLES_NAME "yytables"
 
-#line 140 "compiler_hw2.l"
+#line 139 "compiler_hw2.l"
 
 
 

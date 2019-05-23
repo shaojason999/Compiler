@@ -120,9 +120,8 @@ id			{letter}+({letter}|{digit})*
  /* others */
 
 [;]		{ CONCAT return SEMICOLON; }
-[\n]		{ CONCAT printf("%d: %s",yylineno,buf); 
+[\n]		{ CONCAT if(buf[0]=='\n') printf("%d:\n",yylineno); else printf("%d: %s",yylineno,buf); 
 			if(Error!=0){	//no error
-				printf("%d\n",Error);
 				Sem_Err();
 			}
 			Error=0;

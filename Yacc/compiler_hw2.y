@@ -126,7 +126,7 @@ global_declarator_list
 
 global_declarator
 	: ID {strcpy(Variable,$1);}
-	| ID ASGN only_const_operation {strcpy(Variable,$1);}
+	| ID ASGN only_const_operation {strcpy(Variable,$1);}	//no variable
 	| ID ASGN STR_CONST {strcpy(Variable,$1);}
 ;
 
@@ -333,7 +333,7 @@ local_declarator_list
 local_declarator
 	: ID {strcpy(Variable,$1);}
 	| ID ASGN assignment_expression {strcpy(Variable,$1);}
-	| ID ASGN only_const_operation {strcpy(Variable,$1);}
+	| ID ASGN STR_CONST {strcpy(Variable,$1);}
 ;
 
 expression_statement
@@ -613,24 +613,32 @@ void Sem_Err()
 		s="Redefined function";
 	
 	printf("\n|-----------------------------------------------|\n");
-	printf("| Error found in line %d: %s\n", yylineno, buf);
+	if(buf[strlen(buf)-1]=='\n')
+		printf("| Error found in line %d: %s", yylineno, buf);
+	else
+		printf("| Error found in line %d: %s\n", yylineno, buf);
 	printf("| %s %s", s, Error_ID);
 	printf("\n|-----------------------------------------------|\n\n");
 }
 
 void yyerror(char *s)
 {
-	if(Error!=-1)
-		Sem_Err();
-
 	char temp[256];
 	memset(temp,0,sizeof(temp));
-	strncpy(temp,buf,strlen(buf)-1);	//discard the unmatched token
-	printf("%d: %s",++yylineno,temp);
+	if(Error!=0){
+		printf("%d: %s\n",++yylineno,buf);
+		Sem_Err();
+	}
+	else{
+		strncpy(temp,buf,strlen(buf)-1);	//discard the unmatched token
+		printf("%d: %s\n",++yylineno,temp);
+	}
 	printf("\n|-----------------------------------------------|\n");
 	printf("| Error found in line %d: %s\n", yylineno, buf);
 	printf("| %s", s);
 	printf("\n|-----------------------------------------------|\n\n");
+
+	exit(0);
 }
 
 int hash(char *id, int num)
