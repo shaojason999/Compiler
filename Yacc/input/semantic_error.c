@@ -28,6 +28,16 @@ int main() {
     int i;
     int a = 5;
 
+    print(a);
+
+    print(e);
+
+    eee=eee+1;
+
+    a=e+1;
+
+    e=a+1;
+
     // if condition
     if (a > 10) {
         x += a;

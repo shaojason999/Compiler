@@ -9,7 +9,7 @@
 extern void Sem_Err();
 
 extern YYSTYPE yylval; //YYSTYPE
-extern int Error,Scope,dump_flag;
+extern int Error,Scope,Function_status,dump_flag;
 extern int Index[10];
 extern void dump_symbol(int);
 char buf[BUF_SIZE];
@@ -121,9 +121,12 @@ id			{letter}+({letter}|{digit})*
 
 [;]		{ CONCAT return SEMICOLON; }
 [\n]		{ CONCAT printf("%d: %s",yylineno,buf); 
-			if(Error!=-1)
+			if(Error!=0){	//no error
+				printf("%d\n",Error);
 				Sem_Err();
-			Error=-1;
+			}
+			Error=0;
+			Function_status=-1;
 			memset(buf,0,sizeof(buf));
 			if(dump_flag==1){
 				dump_symbol(Index[Scope]);

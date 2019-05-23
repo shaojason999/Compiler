@@ -600,7 +600,7 @@ char *yytext;
 extern void Sem_Err();
 
 extern YYSTYPE yylval; //YYSTYPE
-extern int Error,Scope,dump_flag;
+extern int Error,Scope,Function_status,dump_flag;
 extern int Index[10];
 extern void dump_symbol(int);
 char buf[BUF_SIZE];
@@ -1208,9 +1208,12 @@ case 58:
 YY_RULE_SETUP
 #line 123 "compiler_hw2.l"
 { CONCAT printf("%d: %s",yylineno,buf); 
-			if(Error!=-1)
+			if(Error!=0){	//no error
+				printf("%d\n",Error);
 				Sem_Err();
-			Error=-1;
+			}
+			Error=0;
+			Function_status=-1;
 			memset(buf,0,sizeof(buf));
 			if(dump_flag==1){
 				dump_symbol(Index[Scope]);
@@ -1220,26 +1223,26 @@ YY_RULE_SETUP
 	YY_BREAK
 case 59:
 YY_RULE_SETUP
-#line 133 "compiler_hw2.l"
+#line 136 "compiler_hw2.l"
 { CONCAT } /* Ignore */
 	YY_BREAK
 case 60:
 YY_RULE_SETUP
-#line 134 "compiler_hw2.l"
+#line 137 "compiler_hw2.l"
 { CONCAT } /* Ignore other charactor sets */
 	YY_BREAK
 case YY_STATE_EOF(INITIAL):
 case YY_STATE_EOF(COMMENT):
 case YY_STATE_EOF(STRING_STATE):
-#line 135 "compiler_hw2.l"
+#line 138 "compiler_hw2.l"
 { yyterminate();}
 	YY_BREAK
 case 61:
 YY_RULE_SETUP
-#line 137 "compiler_hw2.l"
+#line 140 "compiler_hw2.l"
 ECHO;
 	YY_BREAK
-#line 1243 "lex.yy.c"
+#line 1246 "lex.yy.c"
 
 	case YY_END_OF_BUFFER:
 		{
@@ -2250,7 +2253,7 @@ void yyfree (void * ptr )
 
 #define YYTABLES_NAME "yytables"
 
-#line 137 "compiler_hw2.l"
+#line 140 "compiler_hw2.l"
 
 
 

@@ -30,7 +30,7 @@ int Scope, Index[SCOPE], order[SCOPE][ENTRY];
 
 int Result,Par_count;
 int Error;	//0 for no error, 1 for undeclared var, 2 for undeclared func, 3 for redeclared var, 4 for redeclaration func
-int Function_status;	//-1 for not a function, 0 for declare, 1 for define
+int Function_status;	//-1 for not a function, 0 for declare, 1 for define, 2 for function call
 int dump_flag,function_flag;
 char Variable[30],Type[10],Kind[10],Error_ID[30];
 char Par[10][10],Par_id[10][30];
@@ -160,7 +160,7 @@ function
 			strcpy(Error_ID,Variable);
 		}
 	}
-	| type ID LB function_parameter_list RB SEMICOLON {
+	| type ID LB function_parameter_list RB SEMICOLON {	//the check of the parameter list is belong to the compound_statement grammar
 		strcpy(Variable, $2);
 		strcpy(Kind,"function");
 		strcpy(Type,$1);
@@ -223,7 +223,14 @@ statement_with_return
 ;
 
 print_statement
-	: PRINT LB ID RB SEMICOLON
+	: PRINT LB ID {
+		Result=lookup_symbol($3);
+		if(Result!=0){
+		printf("123 %d\n",Result);
+			Error=Result;
+			strcpy(Error_ID,$3);
+		}
+	}RB SEMICOLON
 	| PRINT LB STR_CONST RB SEMICOLON
 ;
 
@@ -249,7 +256,8 @@ compound_statement
 				strcpy(Type,Par[i]);
 				Par_count=0;
 				Result=insert_symbol();
-				if(Result!=0 && Error==-1){	//redefine variable
+				if(Result!=0 && Error==0){	//redefine variable
+			printf("345\n");
 					Error=Result;
 					strcpy(Error_ID,Variable);
 				}
@@ -261,7 +269,9 @@ compound_statement
 	}
 	| LCB {
 		create_symbol();
+			printf("12345\n");
 		if(function_flag){
+			printf("12345\n");
 			int i;
 			for(i=0;i<sym_table[Scope-1][order[Scope-1][Index[Scope-1]]].par_count;++i){
 				strcpy(Variable,Par_id[i]);
@@ -269,7 +279,9 @@ compound_statement
 				strcpy(Type,Par[i]);
 				Par_count=0;
 				Result=insert_symbol();
-				if(Result!=0 && Error==-1){	//redefine variable
+			printf("234\n");
+				if(Result!=0 && Error==0){	//redefine variable
+			printf("345\n");
 					Error=Result;
 					strcpy(Error_ID,Variable);
 				}
@@ -336,8 +348,20 @@ expression_list
 
 assignment_expression
 	: logical_or_expression
-	| ID assignment_operator assignment_expression
-	| ID ASGN STR_CONST
+	| ID assignment_operator{
+		Result=lookup_symbol($1);
+		if(Result!=0){	//0 for no error
+			Error=Result;
+			strcpy(Error_ID,$1);
+		}
+	}assignment_expression
+	| ID ASGN {
+		Result=lookup_symbol($1);
+		if(Result!=0){	//0 for no error
+			Error=Result;
+			strcpy(Error_ID,$1);
+		}
+	}STR_CONST
 ;
 
 assignment_operator
@@ -395,9 +419,29 @@ prefix_expression
 ;
 
 postfix_expression
-	: ID
-	| ID LB RB
-	| ID LB expression_list RB
+	: ID{
+		Result=lookup_symbol($1);
+		if(Result!=0){
+			Error=Result;
+			strcpy(Error_ID,$1);
+		}
+	}
+	| ID LB {
+		Function_status=2;	//function call
+		Result=lookup_symbol($1);
+		if(Result!=0){
+			Error=Result;
+			strcpy(Error_ID,$1);
+		}
+	}RB
+	| ID LB {
+		Function_status=2;	//function call
+		Result=lookup_symbol($1);
+		if(Result!=0){
+			Error=Result;
+			strcpy(Error_ID,$1);
+		}
+	}expression_list RB
 	| const_without_str 
 	| LB expression_list RB
 	| bra_expression INC
@@ -405,7 +449,13 @@ postfix_expression
 ;
 
 bra_expression
-	: ID
+	: ID {
+		Result=lookup_symbol($1);
+		if(Result!=0){
+			Error=Result;
+			strcpy(Error_ID,$1);
+		}
+	}
 	| LB bra_expression RB
 ;
 
@@ -557,6 +607,8 @@ void Sem_Err()
 		s="Redeclared variable";
 	else if(Error==4)
 		s="Redeclared function";
+	else if(Error==5)
+		s="Redefined function";
 	
 	printf("\n|-----------------------------------------------|\n");
 	printf("| Error found in line %d: %s\n", yylineno, buf);
@@ -613,6 +665,7 @@ int insert_symbol()
 	for(i=0;i<1000;++i){
 		index=hash(Variable,i);
 		if(sym_table[Scope][index].index==-1){	//found the empty entry
+		printf("123\n");
 			sym_table[Scope][index].index=++Index[Scope];
 			strcpy(sym_table[Scope][index].name,Variable);
 			strcpy(sym_table[Scope][index].kind,Kind);
@@ -623,6 +676,7 @@ int insert_symbol()
 				strcpy(sym_table[Scope][index].par[j],Par[j]);
 			if(strcmp(Kind,"function")==0)
 				sym_table[Scope][index].function_status=Function_status;
+			Function_status=-1;
 			Par_count=0;
 			order[Scope][Index[Scope]]=index;
 			return 0;
@@ -633,7 +687,10 @@ int insert_symbol()
 				return 3;	//redeclared variable
 			}
 			else if(sym_table[Scope][index].function_status==2){	//already declared and defined
-				return 4;	//redeclared function(don't care redefined in this version)
+				if(Function_status==0)
+					return 4;	//redeclared function
+				else if(Function_status==1)
+					return 5;	//redefined function
 			}
 			else if(sym_table[Scope][index].function_status==1 && Function_status==1){
 				return 5;	//redefined function
@@ -657,19 +714,24 @@ int lookup_symbol(char *id)
 {
 	int index,i,scope=Scope;
 	for(;scope>=0;--scope){
-		for(i=0;i<1000;++i){
+		for(i=0;i<ENTRY;++i){
 			index=hash(id,i);
 			if(sym_table[scope][index].index==-1)	//empty entry (not found)
-				continue;
+				break;
 			else if(strcmp(sym_table[scope][index].name,id)==0)	//already exists
-				return 1;
+				return 0;	//no error
 		}
-		if(i==1000){
+		if(i==ENTRY){
 			printf("symbol table is too small\n");
 			exit(-1);
 		}
 	}
-	return -1;	//not found in any scope level
+	if(Function_status==2){	//function call
+		return 1;	//undeclared function
+	}
+	else if(Function_status==-1){	//not a function(is a variable)
+		return 2;	//undeclared variable (not found in any scope level)
+	}
 }
 
 void dump_symbol(int index) {
@@ -696,7 +758,7 @@ void init()
 {
 	int i,j;
 	yylineno = 0;
-	Error=-1;
+	Error=0;	//no error
 	for(i=0;i<SCOPE;++i)
 		Index[i]=-1;
 	for(i=0;i<SCOPE;++i)
