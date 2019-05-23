@@ -28,7 +28,9 @@ struct SYMBOL_TABLE{
 int Scope, Index[SCOPE], order[SCOPE][ENTRY];
 
 int Result,Error,Par_count;
-char Variable[30],Type[10],Kind[10],Error_ID[30],Par[10][10];
+int dump_flag,function_flag;
+char Variable[30],Type[10],Kind[10],Error_ID[30];
+char Par[10][10],Par_id[10][30];
 struct SYMBOL_TABLE sym_table[SCOPE][ENTRY];
 
 /* Symbol table function - you can add new function if needed. */
@@ -105,7 +107,8 @@ global_declarator_list
 		if(Result==-1){	//redefined
 			Error=2;
 			strcpy(Error_ID,Variable);
-		}} 
+		}
+	} 
 	| global_declarator_list COMMA global_declarator {
 		strcpy(Kind,"variable");
 		Par_count=0;
@@ -113,14 +116,14 @@ global_declarator_list
 		if(Result==-1){	//redefined
 			Error=2;
 			strcpy(Error_ID,Variable);
-		}} 
+		}
+	} 
 ;
 
 global_declarator
 	: ID {strcpy(Variable,$1);}
 	| ID ASGN only_const_operation {strcpy(Variable,$1);}
 	| ID ASGN STR_CONST {strcpy(Variable,$1);}
-
 ;
 
 only_const_operation
@@ -168,8 +171,8 @@ function
 		if(Result==-1){	//redeclare function
 			Error=3;
 			strcpy(Error_ID,Variable);
-		}}	
-	compound_statement
+		}
+	}compound_statement
 	| type ID LB function_parameter_list RB {
 		strcpy(Variable,$2);
 		strcpy(Kind,"function");
@@ -178,17 +181,21 @@ function
 		if(Result==-1){	//redeclare function
 			Error=3;
 			strcpy(Error_ID,Variable);
-		}}	
-	compound_statement
+		}
+		function_flag=1;
+	}compound_statement
 ;
 
 function_parameter_list
 	: type ID {
-		strcpy(Par[Par_count++],Type);
-		}
+		strcpy(Par[Par_count],Type);
+		/*used for the local variable in function later*/
+		strcpy(Par_id[Par_count++],$2);
+	}
 	| function_parameter_list COMMA type ID {
-		strcpy(Par[Par_count++],Type);
-		}
+		strcpy(Par[Par_count],Type);
+		strcpy(Par_id[Par_count++],$4);
+	}
 ;
 
 statement
@@ -221,8 +228,46 @@ jump_statement
 ;
 
 compound_statement
-	: LCB RCB
-	| LCB block_item_list RCB
+	: LCB {
+		create_symbol();
+		if(function_flag){
+			int i;
+			for(i=0;i<sym_table[Scope-1][order[Scope-1][Index[Scope-1]]].par_count;++i){
+				strcpy(Variable,Par_id[i]);
+				strcpy(Kind,"parameter");
+				strcpy(Type,Par[i]);
+				Par_count=0;
+				Result=insert_symbol();
+				if(Result==-1 && Error==-1){	//redefine variable
+					Error=2;
+					strcpy(Error_ID,Variable);
+				}
+			}
+			function_flag=0;
+		}
+	} RCB {
+		dump_flag=1;
+	}
+	| LCB {
+		create_symbol();
+		if(function_flag){
+			int i;
+			for(i=0;i<sym_table[Scope-1][order[Scope-1][Index[Scope-1]]].par_count;++i){
+				strcpy(Variable,Par_id[i]);
+				strcpy(Kind,"parameter");
+				strcpy(Type,Par[i]);
+				Par_count=0;
+				Result=insert_symbol();
+				if(Result==-1 && Error==-1){	//redefine variable
+					Error=2;
+					strcpy(Error_ID,Variable);
+				}
+			}
+			function_flag=0;
+		}
+	}block_item_list RCB {
+		dump_flag=1;
+	}
 ;
 
 block_item_list
@@ -233,7 +278,6 @@ block_item_list
 block_item
 	: statement
 	| local_declaration
-/*	| function_definition*/
 	| function
 ;
 
@@ -243,14 +287,30 @@ local_declaration
 ;
 
 local_declarator_list
-	: local_declarator
-	| local_declarator_list COMMA local_declarator
+	: local_declarator {
+		strcpy(Kind,"variable");
+		Par_count=0;
+		Result=insert_symbol();
+		if(Result==-1){	//redefined
+			Error=2;
+			strcpy(Error_ID,Variable);
+		}
+	} 
+	| local_declarator_list COMMA local_declarator {
+		strcpy(Kind,"variable");
+		Par_count=0;
+		Result=insert_symbol();
+		if(Result==-1){	//redefined
+			Error=2;
+			strcpy(Error_ID,Variable);
+		}
+	} 
 ;
 
 local_declarator
-	: ID
-	| ID ASGN assignment_expression
-	| ID ASGN STR_CONST
+	: ID {strcpy(Variable,$1);}
+	| ID ASGN assignment_expression {strcpy(Variable,$1);}
+	| ID ASGN only_const_operation {strcpy(Variable,$1);}
 ;
 
 expression_statement
@@ -397,18 +457,62 @@ iteration_statement
 ;
 
 loop_statement
-	: compound_statement
+	: loop_compound_statement
 	| expression_statement
-	| selection_statement
+	| loop_selection_statement
 	| iteration_statement
 	| print_statement
 	| comment
 	| loop_jump_statement
 ;
 
+loop_selection_statement
+	: IF LB expression_list RB loop_compound_statement
+	| IF LB expression_list RB loop_compound_statement ELSE loop_selection_statement
+	| IF LB expression_list RB loop_compound_statement ELSE loop_compound_statement
+;
+
 loop_compound_statement
-	: LCB RCB
-	| LCB loop_block_item_list RCB
+	: LCB {
+		create_symbol();
+		if(function_flag){
+			int i;
+			for(i=0;i<sym_table[Scope-1][order[Scope-1][Index[Scope-1]]].par_count;++i){
+				strcpy(Variable,Par_id[i]);
+				strcpy(Kind,"parameter");
+				strcpy(Type,Par[i]);
+				Par_count=0;
+				Result=insert_symbol();
+				if(Result==-1 && Error==-1){	//redefine variable
+					Error=2;
+					strcpy(Error_ID,Variable);
+				}
+			}
+			function_flag=0;
+		}
+	} RCB {
+		dump_flag=1;
+	}
+	| LCB {
+		create_symbol();
+		if(function_flag){
+			int i;
+			for(i=0;i<sym_table[Scope-1][order[Scope-1][Index[Scope-1]]].par_count;++i){
+				strcpy(Variable,Par_id[i]);
+				strcpy(Kind,"parameter");
+				strcpy(Type,Par[i]);
+				Par_count=0;
+				Result=insert_symbol();
+				if(Result==-1 && Error==-1){	//redefine variable
+					Error=2;
+					strcpy(Error_ID,Variable);
+				}
+			}
+			function_flag=0;
+		}
+	}loop_block_item_list RCB {
+		dump_flag=1;
+	}
 ;
 
 loop_block_item_list
@@ -419,7 +523,6 @@ loop_block_item_list
 loop_block_item
 	: loop_statement
 	| local_declaration
-/*	| function_definition*/
 	| function
 ;
 
@@ -448,8 +551,6 @@ void Sem_Err()
 	printf("| Error found in line %d: %s\n", yylineno, buf);
 	printf("| %s %s", s, Error_ID);
 	printf("\n|-----------------------------------------------|\n\n");
-
-
 }
 
 void yyerror(char *s)
@@ -490,6 +591,7 @@ void create_symbol()
 		sym_table[Scope][i].scope=-1;
 		sym_table[Scope][i].par_count=-1;
 	}
+	Index[Scope]=-1;
 }
 
 int insert_symbol()
@@ -538,22 +640,23 @@ int lookup_symbol(char *id)
 }
 
 void dump_symbol(int index) {
-    int i,j,entry;
-    printf("\n%-10s%-10s%-12s%-10s%-10s%-10s\n\n",
-           "Index", "Name", "Kind", "Type", "Scope", "Attribute");
-
-    for(i=0;i<=index;++i){
-    	    entry=order[Scope][i];
-	    printf("%-10d%-10s%-12s%-10s%-10d",
-    		   i,sym_table[Scope][entry].name,sym_table[Scope][entry].kind,sym_table[Scope][entry].type,sym_table[Scope][entry].scope);
-	    if(sym_table[Scope][entry].par_count!=-1)
-	    	printf("%s",sym_table[Scope][entry].par[0]);
-	    for(j=1;j<sym_table[Scope][entry].par_count;++j)
-		    printf(", %s",sym_table[Scope][entry].par[j]);
-	    printf("\n");
-    }
-//    --Scope;
-
+	int i,j,entry;
+	if(index>=0){
+		printf("\n%-10s%-10s%-12s%-10s%-10s%-10s\n\n",
+		"Index", "Name", "Kind", "Type", "Scope", "Attribute");
+		for(i=0;i<=index;++i){
+    			entry=order[Scope][i];
+			printf("%-10d%-10s%-12s%-10s%-10d",
+    			i,sym_table[Scope][entry].name,sym_table[Scope][entry].kind,sym_table[Scope][entry].type,sym_table[Scope][entry].scope);
+			if(sym_table[Scope][entry].par_count!=-1)
+				printf("%s",sym_table[Scope][entry].par[0]);
+			for(j=1;j<sym_table[Scope][entry].par_count;++j)
+				printf(", %s",sym_table[Scope][entry].par[j]);
+			printf("\n");
+		}
+		printf("\n");
+	}
+	--Scope;
 }
 
 void init()
@@ -575,6 +678,8 @@ void init()
 
 	Scope=-1;
 	Par_count=0;
+	dump_flag=0;
+	function_flag=0;
 }
 
 int main(int argc, char** argv)

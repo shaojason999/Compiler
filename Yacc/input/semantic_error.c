@@ -6,9 +6,14 @@ float c = 1.5;
 
 bool loop(int n, int m) {
     while (n > m) {
-        n--;
+	int a;
+	n--;
     }
     return true;
+}
+
+int a(bool b){
+        b++;
 }
 
 int main() {

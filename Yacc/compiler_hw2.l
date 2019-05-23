@@ -9,7 +9,9 @@
 extern void Sem_Err();
 
 extern YYSTYPE yylval; //YYSTYPE
-extern int Error;
+extern int Error,Scope,dump_flag;
+extern int Index[10];
+extern void dump_symbol(int);
 char buf[BUF_SIZE];
 
 /* This macro is used to record code line */
@@ -122,7 +124,12 @@ id			{letter}+({letter}|{digit})*
 			if(Error!=-1)
 				Sem_Err();
 			Error=-1;
-			memset(buf,0,sizeof(buf));}
+			memset(buf,0,sizeof(buf));
+			if(dump_flag==1){
+				dump_symbol(Index[Scope]);
+				dump_flag=0;
+			}
+		}
 [ \t]		{ CONCAT } /* Ignore */
 [^ \t\n]	{ CONCAT } /* Ignore other charactor sets */
 <<EOF>>		{ yyterminate();}
