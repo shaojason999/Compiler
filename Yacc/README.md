@@ -1,5 +1,13 @@
 # Yacc
 
+## 程式碼執行方式
+```
+$ make
+
+$ ./myparser < input/zero_error.c > temp
+$ diff temp output/zero_error.out
+```
+
 ## 程式碼說明
 #### 1. %union and yylval
 * 當yacc需要從lex取得值時，需要在lex將值儲存在yylval中，比如這樣:
@@ -61,7 +69,7 @@
     * 往下走到terminal時，terminal的值就是從lex的yylval來(因此type很重要)
 * [參考資料1](https://stackoverflow.com/questions/1853204/yylval-and-union) [參考資料2](https://www.cnblogs.com/rednodel/p/4500276.html)
 
-#### 2. %left %right %nonassoc
+#### 2. %left %right %nonassoc(這我沒用到)
 * 定義terminal的left or right associative(不需要再用%token定義)
 * 比如1+2+3
     * %left時，解析成(1+2)+3
@@ -121,16 +129,19 @@
 * printf被視為function call
 * 但在這個作業print被視為一個專門的語法，所以我的處理方式就不用function call去處理
 
-#### 6. function call
-* 在這個作業當中被我用expression文法去處理(被當作運算中的operand(有可能沒有operator))。但其實專門設一個function call的statement文法應該會比較好
-
-#### 7. void的部分我沒有特別去處理，比如我沒處理以下這個: 
+#### 6. void的部分我沒有特別去處理，比如我沒處理以下這個: 
 ```C
 /* error: void value not ignored*/
 void a(){}
 int b=a();
 ```
 * 這個應該要是error的，但我的這個作業中沒有去處理這個部分
+
+#### 7. 其他說明
+* 程式碼到最後其實寫得有點亂，但也懶得改了。我前面盡量維持一致性與整齊性，直到最後加入了幾個flag(像是Error, Function_status, dump_flag, function_flag等等)
+* 這個compiler跟C還是有一點差距，比如function declare的檢查、define的檢查等等，不過基本上跟C的常見用法差不了多少
+* semantic error錯誤訊息為印出一整行，然後繼續parser。syntactic error錯誤訊息為印到錯誤token為止，然後程式終止。兩者同時發生時，先印semantic
+    * 我沒有處理一行內有任一錯誤超過一次的狀況
 
 ## 觀念釐清
 1. 沒有被 %token 或是 %left 等方式定義的grammar rule裡出現的符號，都會被當成nonterminal
@@ -168,13 +179,14 @@ int b=a();
     ;
     ```
     * 像這樣$ yacc .y檔會出現warning: rule useless in parser due to conflicts。
-    * 我覺得是因為有ambiguous。因為一旦print，就表示只能走這條了，而這樣的情況yacc不允許，因此這條grammar會被yacc丟掉，因此不會用到
-        * 比如: 輸入 int a... 可能會是global_dec或是function，因為讀到int(type)時還無法判斷，因此有ambiguous，此時不能有action(print)，因為一旦做了這件事，就只能走其中一條了
-            * 如果每條都有action，則保留最上面那條
+    * 我覺得是因為有ambiguous。因為一旦print，就表示只能走這條了(無法去check其他rule)，而這樣的情況yacc不允許，因此這條rule會被yacc丟掉，因此不會用到
+        * 比如: 輸入 int a... 可能會走global_dec或是function，因為兩者都可能先讀到int再讀到a，因此有ambiguous，此時不能有action(print)，因為一旦做了這件事，就只能走其中一條了
+            * 如果有ambiguos的發生，則自動保留最上面那條
+        * 因為是LR(1)，所以會先去check {action} 的下一個token，如果符合，才會回來做這個 {action}
 
     解決方法:  
     * 解決ambiguous(改寫規則)
-    * 或是把{action}加在別的地方
+    * 或是把{action}加在別的地方，比如加在最後面也許就不會有ambiguous的問題
   
 5. const (以下這些我都有特別處理)
 * a\++; 的回傳值為數字，不是變數
@@ -231,7 +243,7 @@ int b=a();
     * 主要還是自己寫及修改
 
 ---
-### 參考資料
+### 主要參考資料
 [symbol table](https://www.iis.sinica.edu.tw/~tshsu/compiler/2005/slides/slide5.pdf)
 [ANSI C Yacc grammar](http://www.quut.com/c/ANSI-C-grammar-y.html#jump_statement)
 [UVa 11291](http://morris821028.github.io/2014/05/12/oj/uva/uva-11291-with-yacc/)
