@@ -29,7 +29,7 @@ struct SYMBOL_TABLE{
 int Scope, Index[SCOPE], order[SCOPE][ENTRY];
 
 int Result,Par_count;
-int Error;	//0 for no error, 1 for undeclared var, 2 for undeclared func, 3 for redeclared var, 4 for redeclaration func
+int Error;	//0 for no error, 1 for undeclared var, 2 for undeclared func, 3 for redeclared var, 4 for redeclaration func(, 5 for redefined func)
 int Function_status;	//-1 for not a function, 0 for declare, 1 for define, 2 for function call
 int dump_flag,function_flag;
 char Variable[30],Type[10],Kind[10],Error_ID[30];
@@ -625,14 +625,9 @@ void yyerror(char *s)
 {
 	char temp[256];
 	memset(temp,0,sizeof(temp));
-	if(Error!=0){
-		printf("%d: %s\n",++yylineno,buf);
+	printf("%d: %s\n",++yylineno,buf);
+	if(Error!=0)
 		Sem_Err();
-	}
-	else{
-		strncpy(temp,buf,strlen(buf)-1);	//discard the unmatched token
-		printf("%d: %s\n",++yylineno,temp);
-	}
 	printf("\n|-----------------------------------------------|\n");
 	printf("| Error found in line %d: %s\n", yylineno, buf);
 	printf("| %s", s);
@@ -693,6 +688,14 @@ int insert_symbol()
 		else if(strcmp(sym_table[Scope][index].name,Variable)==0){	//already exists
 			Par_count=0;
 			if(sym_table[Scope][index].function_status==-1){	//not a function
+				if(Function_status==-1)
+					return 3; //redeclared variable
+				if(Function_status==0)
+					return 4;	//redeclared function
+				else if(Function_status==1)
+					return 5;	//redefined function
+			}
+			else if(Function_status==-1){
 				return 3;	//redeclared variable
 			}
 			else if(sym_table[Scope][index].function_status==2){	//already declared and defined
