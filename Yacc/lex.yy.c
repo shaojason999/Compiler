@@ -1212,7 +1212,7 @@ YY_RULE_SETUP
 				Sem_Err();
 			}
 			Error=0;
-			Function_status=-1;
+//			Function_status=-1;
 			memset(buf,0,sizeof(buf));
 			if(dump_flag==1){
 				dump_symbol(Index[Scope]);

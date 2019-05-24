@@ -37,7 +37,6 @@ char Par[10][10],Par_id[10][30];
 struct SYMBOL_TABLE sym_table[SCOPE][ENTRY];
 
 /* Symbol table function - you can add new function if needed. */
-int find_the_function_index(char *);
 void create_symbol();
 int insert_symbol();
 int lookup_symbol(char *id);
@@ -71,13 +70,9 @@ void dump_symbol(int index);
 %token SEMICOLON
 
 /* Token with return, which need to sepcify type */
-//%token <i_val> I_CONST
-//%token <f_val> F_CONST
-//%token <string> STRING
 %token <string> ID VOID INT FLOAT STRING BOOL
 
 /* Nonterminal with return, which need to sepcify type */
-//%type <f_val> stat
 %type <string> type
 
 /* Yacc will start at this nonterminal */
@@ -105,6 +100,7 @@ global_declaration
 
 global_declarator_list
 	: global_declarator {
+		Function_status=-1;	//variable
 		strcpy(Kind,"variable");
 		Par_count=0;
 		Result=insert_symbol();
@@ -114,6 +110,7 @@ global_declarator_list
 		}
 	} 
 	| global_declarator_list COMMA global_declarator {
+		Function_status=-1;
 		strcpy(Kind,"variable");
 		Par_count=0;
 		Result=insert_symbol();
@@ -228,6 +225,7 @@ statement_with_return
 
 print_statement
 	: PRINT LB ID {
+		Function_status=-1;
 		Result=lookup_symbol($3);
 		if(Result!=0){
 			Error=Result;
@@ -311,6 +309,7 @@ local_declaration
 
 local_declarator_list
 	: local_declarator {
+		Function_status=-1;
 		strcpy(Kind,"variable");
 		Par_count=0;
 		Result=insert_symbol();
@@ -320,6 +319,7 @@ local_declarator_list
 		}
 	} 
 	| local_declarator_list COMMA local_declarator {
+		Function_status=-1;
 		strcpy(Kind,"variable");
 		Par_count=0;
 		Result=insert_symbol();
@@ -349,6 +349,7 @@ expression_list
 assignment_expression
 	: logical_or_expression
 	| ID assignment_operator{
+		Function_status=-1;
 		Result=lookup_symbol($1);
 		if(Result!=0){	//0 for no error
 			Error=Result;
@@ -356,6 +357,7 @@ assignment_expression
 		}
 	}assignment_expression
 	| ID ASGN {
+		Function_status=-1;
 		Result=lookup_symbol($1);
 		if(Result!=0){	//0 for no error
 			Error=Result;
@@ -420,6 +422,7 @@ prefix_expression
 
 postfix_expression
 	: ID{
+		Function_status=-1;
 		Result=lookup_symbol($1);
 		if(Result!=0){
 			Error=Result;
@@ -450,6 +453,7 @@ postfix_expression
 
 bra_expression
 	: ID {
+		Function_status=-1;
 		Result=lookup_symbol($1);
 		if(Result!=0){
 			Error=Result;
@@ -776,12 +780,6 @@ void init()
 	for(i=0;i<SCOPE;++i)
 		for(j=0;j<ENTRY;++j)
 			order[i][j]=-1;
-	/*
-	strcpy(Variable,"");
-	strcpy(Kind,"");
-	strcpy(Type,"");
-	for(i=0;i<10;++i)
-		strcpy(Par[i],"");*/
 
 	Scope=-1;
 	Par_count=0;
