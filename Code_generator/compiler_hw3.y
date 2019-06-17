@@ -14,6 +14,8 @@ extern void yyerror(char *s);
 extern char* yytext;   // Get current token from lex
 extern char buf[256];  // Get current code line from lex
 
+FILE *file;
+
 struct SYMBOL_TABLE{
 	int index;
 	char name[30];
@@ -107,6 +109,9 @@ global_declarator_list
 		if(Result!=0){	//redeclared
 			Error=Result;
 			strcpy(Error_ID,Variable);
+		}
+		if(Result==0){
+		
 		}
 	} 
 	| global_declarator_list COMMA global_declarator {
@@ -793,20 +798,20 @@ int main(int argc, char** argv)
 	init();
 	create_symbol();
     
-    file = fopen("compiler_hw3.j","w");
-    fprintf(file,   ".class public compiler_hw3\n"
-                    ".super java/lang/Object\n"
-                    ".method public static main([Ljava/lang/String;)V\n");
+    	file = fopen("compiler_hw3.j","w");
+	fprintf(file,   ".class public compiler_hw3\n"
+			".super java/lang/Object\n"
+			".method public static main([Ljava/lang/String;)V\n");
 
 	yyparse();
 
 	dump_symbol(Index[0]);
 
 	printf("\nTotal lines: %d \n",yylineno);
-    fprintf(file, "\treturn\n"
-                  ".end method\n");
 
-    fclose(file);
+	fprintf(file, "\treturn\n"
+		".end method\n");
+	fclose(file);
 
 	return 0;
 }

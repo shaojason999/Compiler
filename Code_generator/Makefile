@@ -4,16 +4,13 @@ FNAME = compiler_hw3
 PARSER = myparser
 OBJECT = lex.yy.c y.tab.c y.tab.h ${FNAME}.j ${FNAME}.class
 
-all: y.tab.o lex.yy.o
-	@${CC} -o ${PARSER} y.tab.o lex.yy.o
+all: scanner parser
+	@${CC} -o ${PARSER} y.tab.c lex.yy.c
 
-%.o: %.c
-	@${CC} -c $<
-
-lex.yy.c:
+scanner:
 	@lex ${FNAME}.l
 
-y.tab.c:
+parser:
 	@yacc ${YFLAG} ${FNAME}.y
 
 test:
@@ -23,4 +20,4 @@ test:
 	@java ${FNAME} 
 
 clean:
-	rm -f *.o ${PARSER} ${OBJECT} 
+	rm -f ${PARSER} ${OBJECT} 
