@@ -82,20 +82,20 @@ extern int yydebug;
     RET = 292,
     CONT = 293,
     BREAK = 294,
-    TRUE = 295,
-    FALSE = 296,
-    STR_CONST = 297,
-    I_CONST = 298,
-    F_CONST = 299,
-    C_COMMENT = 300,
-    CPP_COMMENT = 301,
-    SEMICOLON = 302,
-    ID = 303,
-    VOID = 304,
-    INT = 305,
-    FLOAT = 306,
-    STRING = 307,
-    BOOL = 308
+    STR_CONST = 295,
+    C_COMMENT = 296,
+    CPP_COMMENT = 297,
+    SEMICOLON = 298,
+    ID = 299,
+    VOID = 300,
+    INT = 301,
+    FLOAT = 302,
+    STRING = 303,
+    BOOL = 304,
+    I_CONST = 305,
+    F_CONST = 306,
+    TRUE = 307,
+    FALSE = 308
   };
 #endif
 /* Tokens.  */
@@ -136,27 +136,27 @@ extern int yydebug;
 #define RET 292
 #define CONT 293
 #define BREAK 294
-#define TRUE 295
-#define FALSE 296
-#define STR_CONST 297
-#define I_CONST 298
-#define F_CONST 299
-#define C_COMMENT 300
-#define CPP_COMMENT 301
-#define SEMICOLON 302
-#define ID 303
-#define VOID 304
-#define INT 305
-#define FLOAT 306
-#define STRING 307
-#define BOOL 308
+#define STR_CONST 295
+#define C_COMMENT 296
+#define CPP_COMMENT 297
+#define SEMICOLON 298
+#define ID 299
+#define VOID 300
+#define INT 301
+#define FLOAT 302
+#define STRING 303
+#define BOOL 304
+#define I_CONST 305
+#define F_CONST 306
+#define TRUE 307
+#define FALSE 308
 
 /* Value type.  */
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 
 union YYSTYPE
 {
-#line 52 "compiler_hw3.y" /* yacc.c:1909  */
+#line 61 "compiler_hw3.y" /* yacc.c:1909  */
 
     int i_val;
     double f_val;

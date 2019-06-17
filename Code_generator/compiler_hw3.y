@@ -33,16 +33,25 @@ int Scope, Index[SCOPE], order[SCOPE][ENTRY];
 int Result,Par_count;
 int Error;	//0 for no error, 1 for undeclared var, 2 for undeclared func, 3 for redeclared var, 4 for redeclaration func(, 5 for redefined func)
 int Function_status;	//-1 for not a function, 0 for declare, 1 for define, 2 for function call
-int dump_flag,function_flag;
+int dump_flag,function_par_flag;
 char Variable[30],Type[10],Kind[10],Error_ID[30];
 char Par[10][10],Par_id[10][30];
 struct SYMBOL_TABLE sym_table[SCOPE][ENTRY];
 
-/* Symbol table function - you can add new function if needed. */
+int type_flag;	//-1 for no assign, 0 for int, 1 for float, 2 for bool
+int function_legal_flag;
+int temp_int;
+float temp_float;
+bool temp_bool;
+char Par_type_list[10],return_type[10];
+
+/* Symbol table function*/
 void create_symbol();
 int insert_symbol();
 int lookup_symbol(char *id);
 void dump_symbol(int index);
+
+void create_par_type_list();
 
 %}
 
@@ -64,15 +73,16 @@ void dump_symbol(int index);
 %token LB RB LCB RCB LSB RSB COMMA
 %token PRINT
 %token IF ELSE FOR WHILE RET CONT BREAK
-%token TRUE FALSE
 %token STR_CONST
-%token I_CONST F_CONST
 %token C_COMMENT
 %token CPP_COMMENT
 %token SEMICOLON
 
 /* Token with return, which need to sepcify type */
 %token <string> ID VOID INT FLOAT STRING BOOL
+%token <i_val> I_CONST
+%token <f_val> F_CONST
+%token <boolean> TRUE FALSE
 
 /* Nonterminal with return, which need to sepcify type */
 %type <string> type
@@ -90,7 +100,6 @@ program
 external_declaration
 	: function	{/*Par_count, Par*/}
 
-/*	| function_definition*/
 	| global_declaration
 	| comment
 ;
@@ -110,8 +119,26 @@ global_declarator_list
 			Error=Result;
 			strcpy(Error_ID,Variable);
 		}
-		if(Result==0){
-		
+		else if(Result==0){
+			/*no void and string here*/
+			if(strcmp(Type,"int")==0){
+				if(type_flag!=-1)
+					fprintf(file, ".field public static %s I = %d\n",Variable,temp_int);
+				else
+					fprintf(file, ".field public static %s I\n",Variable);
+			}
+			else if(strcmp(Type,"float")==0){
+				if(type_flag!=-1)
+					fprintf(file, ".field public static %s F = %f\n",Variable,temp_float);
+				else
+					fprintf(file, ".field public static %s F\n",Variable);
+			}
+			else if(strcmp(Type,"bool")==0){
+				if(type_flag!=-1)
+					fprintf(file, ".field public static %s Z = %d\n",Variable,temp_bool);
+				else
+					fprintf(file, ".field public static %s Z\n",Variable);
+			}
 		}
 	} 
 	| global_declarator_list COMMA global_declarator {
@@ -123,24 +150,41 @@ global_declarator_list
 			Error=Result;
 			strcpy(Error_ID,Variable);
 		}
+		else if(Result==0){
+			/*no void and string here*/
+			if(strcmp(Type,"int")==0){
+				if(type_flag!=-1)
+					fprintf(file, ".field public static %s I = %d\n",Variable,temp_int);
+				else
+					fprintf(file, ".field public static %s I\n",Variable);
+			}
+			else if(strcmp(Type,"float")==0){
+				if(type_flag!=-1)
+					fprintf(file, ".field public static %s F = %f\n",Variable,temp_float);
+				else
+					fprintf(file, ".field public static %s F\n",Variable);
+			}
+			else if(strcmp(Type,"bool")==0){
+				if(type_flag!=-1)
+					fprintf(file, ".field public static %s Z = %d\n",Variable,temp_bool);
+				else
+					fprintf(file, ".field public static %s Z\n",Variable);
+			}
+		}
 	} 
 ;
 
 global_declarator
-	: ID {strcpy(Variable,$1);}
-	| ID ASGN only_const_operation {strcpy(Variable,$1);}	//no variable
+	: ID {strcpy(Variable,$1); type_flag=-1;}
+	| ID ASGN const_without_str {strcpy(Variable,$1);}
 	| ID ASGN STR_CONST {strcpy(Variable,$1);}
 ;
 
-only_const_operation
-	: const_logical_or_expression
-;
-
 const_without_str
-	: I_CONST
-	| F_CONST
-	| TRUE
-	| FALSE
+	: I_CONST {temp_int=$1; type_flag=0;}
+	| F_CONST {temp_float=$1; type_flag=1;}
+	| TRUE {temp_bool=1; type_flag=2;}
+	| FALSE {temp_bool=0; type_flag=2;}
 ;
 
 type
@@ -183,7 +227,39 @@ function
 			Error=Result;
 			strcpy(Error_ID,Variable);
 		}
-	}compound_statement
+		else if(Result==0){	//code generation
+			function_legal_flag=1;
+
+			if(strcmp($1,"int")==0)
+				strcpy(return_type,"I");
+			else if(strcmp($1,"float")==0)
+				strcpy(return_type,"F");
+			else if(strcmp($1,"bool")==0)
+				strcpy(return_type,"Z");
+			else if(strcmp($1,"void")==0)
+				strcpy(return_type,"V");
+
+			if(strcmp($2,"main")==0)
+				fprintf(file, ".method public static main([Ljava/lang/String;)%s\n",return_type);
+			else
+				fprintf(file, ".method public static %s()%s\n",$2,return_type);
+			fprintf(file, ".limit stack 50\n");
+			fprintf(file, ".limit locals 50\n");
+		}
+	}compound_statement{
+		if(function_legal_flag==1){
+			if(strcmp($1,"int")==0)
+				fprintf(file, "	ireturn\n");
+			else if(strcmp($1,"float")==0)
+				fprintf(file, "	freturn\n");
+			else if(strcmp($1,"bool")==0)
+				fprintf(file, "	zreturn\n");
+			else if(strcmp($1,"void")==0)
+				fprintf(file, "	return\n");
+			fprintf(file, ".end method\n");
+			function_legal_flag=0;
+		}
+	}
 	| type ID LB function_parameter_list RB {
 		int temp_count;
 		temp_count=Par_count;
@@ -196,10 +272,46 @@ function
 			Error=Result;
 			strcpy(Error_ID,Variable);
 		}
-		function_flag=1;
+		function_par_flag=1;
 		Par_count=temp_count;
-	}compound_statement
+
+		if(Result==0){
+			function_legal_flag=1;
+
+			if(strcmp($1,"int")==0)
+				strcpy(return_type,"I");
+			else if(strcmp($1,"float")==0)
+				strcpy(return_type,"F");
+			else if(strcmp($1,"bool")==0)
+				strcpy(return_type,"Z");
+			else if(strcmp($1,"void")==0)
+				strcpy(return_type,"V");
+
+			if(strcmp($2,"main")==0)
+				fprintf(file, ".method public static main([Ljava/lang/String;)%s\n",return_type);
+			else{
+				create_par_type_list();
+				fprintf(file, ".method public static %s(%s)%s\n",$2,Par_type_list,$1);
+			}
+			fprintf(file, ".limit stack 50\n");
+			fprintf(file, ".limit locals 50\n");
+		}
+	}compound_statement{
+		if(function_legal_flag==1){
+			if(strcmp($1,"int")==0)
+				fprintf(file, "	ireturn\n");
+			else if(strcmp($1,"float")==0)
+				fprintf(file, "	freturn\n");
+			else if(strcmp($1,"bool")==0)
+				fprintf(file, "	zreturn\n");
+			else if(strcmp($1,"void")==0)
+				fprintf(file, "return\n");
+			fprintf(file, ".end method\n");
+			function_legal_flag=0;
+		}
+	}
 ;
+
 
 function_parameter_list
 	: type ID {
@@ -254,7 +366,7 @@ jump_statement
 compound_statement
 	: LCB {
 		create_symbol();
-		if(function_flag){
+		if(function_par_flag){
 			int i,count;
 			count=Par_count;
 			for(i=0;i<count;++i){
@@ -268,14 +380,17 @@ compound_statement
 					strcpy(Error_ID,Variable);
 				}
 			}
-			function_flag=0;
+			function_par_flag=0;
+		}
+		if(function_legal_flag==1){	//only if function defined successfully, code_gen is needed
+
 		}
 	}RCB {
 		dump_flag=1;
 	}
 	| LCB {
 		create_symbol();
-		if(function_flag){
+		if(function_par_flag){
 			int i,count;
 			count=Par_count;
 			for(i=0;i<count;++i){
@@ -289,7 +404,7 @@ compound_statement
 					strcpy(Error_ID,Variable);
 				}
 			}
-			function_flag=0;
+			function_par_flag=0;
 		}
 	}block_item_list RCB {
 		dump_flag=1;
@@ -468,54 +583,6 @@ bra_expression
 	| LB bra_expression RB
 ;
 
-const_logical_or_expression
-	: const_logical_and_expression
-	| const_logical_or_expression OR const_logical_and_expression
-;
-
-const_logical_and_expression
-	: const_equality_expression
-	| const_logical_and_expression AND const_equality_expression
-;
-
-const_equality_expression
-	: const_relational_expression
-	| const_equality_expression EQ const_relational_expression
-	| const_equality_expression NE const_relational_expression
-;
-
-const_relational_expression
-	: const_additive_expression
-	| const_relational_expression MT const_additive_expression
-	| const_relational_expression LT const_additive_expression
-	| const_relational_expression MTE const_additive_expression
-	| const_relational_expression LTE const_additive_expression
-;
-
-const_additive_expression
-	: const_multiplicative_expression
-	| const_additive_expression ADD const_multiplicative_expression
-	| const_additive_expression SUB const_multiplicative_expression
-;
-
-const_multiplicative_expression
-	: const_prefix_expression
-	| const_multiplicative_expression MUL const_prefix_expression
-	| const_multiplicative_expression DIV const_prefix_expression
-	| const_multiplicative_expression MOD const_prefix_expression
-;
-
-const_prefix_expression
-	: const_postfix_expression
-	| ADD const_prefix_expression
-	| SUB const_prefix_expression
-;
-
-const_postfix_expression
-	: const_without_str
-	| LB const_logical_or_expression RB
-;
-
 selection_statement
 	: IF LB expression_list RB compound_statement
 	| IF LB expression_list RB compound_statement ELSE selection_statement
@@ -546,7 +613,7 @@ loop_compound_statement
 	: LCB {
 		create_symbol();
 		/*for function parameter*/
-		if(function_flag){
+		if(function_par_flag){
 			int i,index;
 			for(i=0;i<sym_table[Scope-1][order[Scope-1][index]].par_count;++i){
 				strcpy(Variable,Par_id[i]);
@@ -559,7 +626,7 @@ loop_compound_statement
 					strcpy(Error_ID,Variable);
 				}
 			}
-			function_flag=0;
+			function_par_flag=0;
 		}
 	}RCB {
 		dump_flag=1;
@@ -567,7 +634,7 @@ loop_compound_statement
 	| LCB {
 		create_symbol();
 		/*for function parameter*/
-		if(function_flag){
+		if(function_par_flag){
 			int i,index;
 			for(i=0;i<sym_table[Scope-1][order[Scope-1][index]].par_count;++i){
 				strcpy(Variable,Par_id[i]);
@@ -580,7 +647,7 @@ loop_compound_statement
 					strcpy(Error_ID,Variable);
 				}
 			}
-			function_flag=0;
+			function_par_flag=0;
 		}
 	}loop_block_item_list RCB {
 		dump_flag=1;
@@ -607,6 +674,19 @@ loop_jump_statement
 %%
 /* C code section */
 
+void create_par_type_list()
+{
+	int i;
+	strcpy(Par_type_list,"");
+	for(i=0;i<Par_count;++i){
+		if(strcmp(Par[Par_count],"int")==0)
+			strcat(Par_type_list,"I");
+		else if(strcmp(Par[Par_count],"float")==0)
+			strcat(Par_type_list,"F");
+		else if(strcmp(Par[Par_count],"bool")==0)
+			strcat(Par[Par_count],"Z");
+	}
+}
 void Sem_Err()
 {
 	char *s;
@@ -790,7 +870,9 @@ void init()
 	Par_count=0;
 	Function_status=-1;
 	dump_flag=0;
-	function_flag=0;
+	function_par_flag=0;
+
+	function_legal_flag=0;
 }
 
 int main(int argc, char** argv)
@@ -800,8 +882,7 @@ int main(int argc, char** argv)
     
     	file = fopen("compiler_hw3.j","w");
 	fprintf(file,   ".class public compiler_hw3\n"
-			".super java/lang/Object\n"
-			".method public static main([Ljava/lang/String;)V\n");
+			".super java/lang/Object\n");
 
 	yyparse();
 
@@ -809,8 +890,6 @@ int main(int argc, char** argv)
 
 	printf("\nTotal lines: %d \n",yylineno);
 
-	fprintf(file, "\treturn\n"
-		".end method\n");
 	fclose(file);
 
 	return 0;
