@@ -7,6 +7,7 @@
 
 #define SCOPE 10
 #define ENTRY 100
+#define STACK_SIZE 50
 #define FILE_NAME "compiler_hw3"
 
 extern int yylineno;
@@ -39,7 +40,8 @@ char Variable[30],Type[10],Kind[10],Error_ID[30];
 char Par[10][10],Par_id[10][30];
 struct SYMBOL_TABLE sym_table[SCOPE][ENTRY];
 
-int type_flag;	//-1 for no assign, 0 for int, 1 for float, 2 for bool
+int type_flag;	//-1 for no assign, 0 for int, 1 for float, 2 for bool, 3 for void, 4 for string
+int Stack_type;	//0 for int, 1 for float, 2 for bool, 3 for void, 4 for string
 int function_legal_flag;	//whether to generate code for function
 int temp_int;
 float temp_float;
@@ -47,6 +49,9 @@ bool temp_bool;
 char Par_type_list[10],return_type[10];
 char RETURN_TYPE[4]="IFZV";
 int Find_scope,Find_index;
+char Find_type[10];
+char stack_type[SCOPE][STACK_SIZE][10];
+int stack_pointer[SCOPE];
 
 /* Symbol table function*/
 void create_symbol();
@@ -58,9 +63,12 @@ int hash(char *,int);
 
 /* code generation function */
 void create_par_type_list();
-int get_return_type(char type[10]);
+void get_return_type(char type[10]);
 void find_index_and_scope();
 void store_code_gen();
+void load_code_gen();
+void arith_code_gen(char operand[10]);
+void type_casting();
 
 %}
 
@@ -238,8 +246,7 @@ function
 		else if(Result==0){	//code generation
 			function_legal_flag=1;
 
-			int type_flag;
-			type_flag=get_return_type($1);
+			get_return_type($1);
 
 			if(strcmp($2,"main")==0)
 				fprintf(file, ".method public static main([Ljava/lang/String;)%c\n",RETURN_TYPE[type_flag]);
@@ -250,8 +257,7 @@ function
 		}
 	}compound_statement{
 		if(function_legal_flag==1){
-			int type_flag;
-			type_flag=get_return_type($1);
+			get_return_type($1);
 
 			if(type_flag==0)
 				fprintf(file, "	ireturn\n");
@@ -283,8 +289,7 @@ function
 		if(Result==0){
 			function_legal_flag=1;
 
-			int type_flag;
-			type_flag=get_return_type($1);
+			get_return_type($1);
 
 			if(strcmp($2,"main")==0)
 				fprintf(file, ".method public static main([Ljava/lang/String;)%c\n",RETURN_TYPE[type_flag]);
@@ -297,8 +302,7 @@ function
 		}
 	}compound_statement{
 		if(function_legal_flag==1){
-			int type_flag;
-			type_flag=get_return_type($1);
+			get_return_type($1);
 
 			if(type_flag==0)
 				fprintf(file, "	ireturn\n");
@@ -456,9 +460,21 @@ local_declarator_list
 ;
 
 local_declarator
-	: ID {strcpy(Variable,$1); fprintf(file, "	ldc 0\n");}
+	: ID {
+		strcpy(Variable,$1);
+		if(function_legal_flag==1)
+			fprintf(file, "	ldc 0\n");
+		++stack_pointer[Scope];
+		strcpy(stack_type[Scope][stack_pointer[Scope]],"int");
+	}
 	| ID ASGN assignment_expression {strcpy(Variable,$1);}
-	| ID ASGN STR_CONST {strcpy(Variable,$1); fprintf(file, "	ldc %s\n",$3);}
+	| ID ASGN STR_CONST {
+		strcpy(Variable,$1);
+		if(function_legal_flag==1)
+			fprintf(file, "	ldc %s\n",$3);
+		++stack_pointer[Scope];
+		strcpy(stack_type[Scope][stack_pointer[Scope]],"string");
+	}
 ;
 
 expression_statement
@@ -473,22 +489,35 @@ expression_list
 
 assignment_expression
 	: logical_or_expression
-	| ID assignment_operator{
+	| ID assignment_operator assignment_expression{
 		Function_status=-1;
 		Result=lookup_symbol($1);
 		if(Result!=0){	//0 for no error
 			Error=Result;
 			strcpy(Error_ID,$1);
 		}
-	}assignment_expression
-	| ID ASGN {
+		else if(Result==0 && function_legal_flag==1){
+			strcpy(Variable,$1);	//Variable will be used in store_code_gen()
+			store_code_gen();
+			load_code_gen();
+		}
+	}
+	| ID ASGN STR_CONST{
 		Function_status=-1;
 		Result=lookup_symbol($1);
 		if(Result!=0){	//0 for no error
 			Error=Result;
 			strcpy(Error_ID,$1);
 		}
-	}STR_CONST
+		else if(Result==0 && function_legal_flag==1){
+			strcpy(Variable,$1);	//Variable will be used in store_code_gen()
+			fprintf(file, "	ldc %s\n",$3);
+			++stack_pointer[Scope];
+			strcpy(stack_type[Scope][stack_pointer[Scope]],"string");
+			store_code_gen();
+			load_code_gen();
+		}
+	}
 ;
 
 assignment_operator
@@ -526,15 +555,15 @@ relational_expression
 
 additive_expression
 	: multiplicative_expression
-	| additive_expression ADD multiplicative_expression
-	| additive_expression SUB multiplicative_expression
+	| additive_expression ADD multiplicative_expression {arith_code_gen("add");}
+	| additive_expression SUB multiplicative_expression {arith_code_gen("sub");}
 ;
 
 multiplicative_expression
 	: prefix_expression
-	| multiplicative_expression MUL prefix_expression
-	| multiplicative_expression DIV prefix_expression
-	| multiplicative_expression MOD prefix_expression
+	| multiplicative_expression MUL prefix_expression {arith_code_gen("mul");}
+	| multiplicative_expression DIV prefix_expression {arith_code_gen("div");}
+	| multiplicative_expression MOD prefix_expression {arith_code_gen("mod");}
 ;
 
 prefix_expression
@@ -553,6 +582,10 @@ postfix_expression
 			Error=Result;
 			strcpy(Error_ID,$1);
 		}
+		else if(Result==0 && function_legal_flag==1){
+			strcpy(Variable,$1);
+			load_code_gen();
+		}
 	}
 	| ID LB {
 		Function_status=2;	//function call
@@ -570,7 +603,21 @@ postfix_expression
 			strcpy(Error_ID,$1);
 		}
 	}expression_list RB
-	| const_without_str 
+	| const_without_str {
+		++stack_pointer[Scope];
+		if(type_flag==0){
+			fprintf(file, "	ldc %d\n",temp_int);
+			strcpy(stack_type[Scope][stack_pointer[Scope]],"int");
+		}
+		else if(type_flag==1){
+			fprintf(file, "	ldc %f\n",temp_float);
+			strcpy(stack_type[Scope][stack_pointer[Scope]],"float");
+		}
+		else if(type_flag==2){
+			fprintf(file, "	ldc %d\n",temp_bool);
+			strcpy(stack_type[Scope][stack_pointer[Scope]],"bool");
+		}
+	}
 	| LB expression_list RB
 	| bra_expression INC
 	| bra_expression DEC 
@@ -583,6 +630,10 @@ bra_expression
 		if(Result!=0){
 			Error=Result;
 			strcpy(Error_ID,$1);
+		}
+		else if(Result==0 && function_legal_flag==1){
+			strcpy(Variable,$1);
+			load_code_gen();
 		}
 	}
 	| LB bra_expression RB
@@ -653,21 +704,21 @@ void create_par_type_list()
 	}
 }
 
-int get_return_type(char type[10])
+void get_return_type(char type[10])
 {
 	if(strcmp(type,"int")==0)
-		return 0;
+		type_flag=0;
 	else if(strcmp(type,"float")==0)
-		return 1;
+		type_flag=1;
 	else if(strcmp(type,"bool")==0)
-		return 2;
+		type_flag=2;
 	else if(strcmp(type,"void")==0)
-		return 3;
+		type_flag=3;
 	else if(strcmp(type,"string")==0)
-		return 4;
+		type_flag=4;
 }
 
-void find_index_and_scope()
+void find_index_and_scope_and_type()
 {
 	int i,j,scope,index;
 	Find_scope=-1;	//no found in every scope
@@ -677,11 +728,12 @@ void find_index_and_scope()
 			index=hash(Variable,i);
 			if(sym_table[scope][index].index==-1)	//not found in this scope
 				i=ENTRY;
-			else if(strcmp(sym_table[scope][index].name,Variable)==0){
+			else if(strcmp(sym_table[scope][index].name,Variable)==0){	//found
 				Find_scope=scope;
 				Find_index=sym_table[scope][index].index;
 				for(j=1;j<scope;++j)	//get the number of variables from scope 1 to (scope-1)
 					Find_index+=(Index[scope]+1);
+				strcat(Find_type,sym_table[scope][index].type);
 				return;
 			}
 		}
@@ -690,22 +742,124 @@ void find_index_and_scope()
 
 void store_code_gen()
 {
-	int type_flag;
-	find_index_and_scope();	//use global variables: Find_scope, Find_index
-	type_flag=get_return_type(Type);
+	find_index_and_scope_and_type();	//use global variables: Find_scope, Find_index
+	get_return_type(Find_type);
 	
 	if(Find_scope>0){
-		if(type_flag==0)	//int
+		if(type_flag==0){	//int
+			if(strcmp(stack_type[Scope][stack_pointer[Scope]],"float")==0)
+				fprintf(file, "	f2i\n");
 			fprintf(file, "	istore %d\n",Find_index);
-		else if(type_flag==1)	//float
+		}
+		else if(type_flag==1){	//float
+			if(strcmp(stack_type[Scope][stack_pointer[Scope]],"int")==0)
+				fprintf(file, "	i2f\n");
 			fprintf(file, "	fstore %d\n",Find_index);
+		}
 		else if(type_flag==2)	//bool
 			fprintf(file, "	istore %d\n",Find_index);
 		else if(type_flag==4)	//string
 			fprintf(file, "	astore %d\n",Find_index);
 	}
 	else if(Find_scope==0)	//attetion: no string type is in the global scope
+		fprintf(file, "	putstatic %s/%s %c\n",FILE_NAME,Variable,RETURN_TYPE[type_flag]);
+
+	--stack_pointer[Scope];
+}
+
+void load_code_gen()
+{
+	find_index_and_scope_and_type();	//use global variables: Find_scope, Find_index
+	get_return_type(Find_type);
+	
+	++stack_pointer[Scope];
+
+	if(Find_scope>0){
+		if(type_flag==0)	//int
+			fprintf(file, "	iload %d\n",Find_index);
+		else if(type_flag==1)	//float
+			fprintf(file, "	fload %d\n",Find_index);
+		else if(type_flag==2)	//bool
+			fprintf(file, "	iload %d\n",Find_index);
+		else if(type_flag==4)	//string
+			fprintf(file, "	aload %d\n",Find_index);
+	}
+	else if(Find_scope==0)	//attetion: no string type is in the global scope
 		fprintf(file, "	getstatic %s/%s %c\n",FILE_NAME,Variable,RETURN_TYPE[type_flag]);
+	
+	if(type_flag==0)	//int
+		strcpy(stack_type[Scope][stack_pointer[Scope]],"int");
+	else if(type_flag==1)	//float
+		strcpy(stack_type[Scope][stack_pointer[Scope]],"float");
+	else if(type_flag==2)	//bool
+		strcpy(stack_type[Scope][stack_pointer[Scope]],"bool");
+	else if(type_flag==4)	//string
+		strcpy(stack_type[Scope][stack_pointer[Scope]],"string");
+}
+
+void arith_code_gen(char operand[10])
+{
+	if(function_legal_flag!=1)
+		return;
+
+	type_casting();
+	if(strcmp(operand,"add")==0){
+		if(type_flag==0)
+			fprintf(file, "	iadd\n");
+		else	//type_flag==1
+			fprintf(file, "	fadd\n");
+	}
+	else if(strcmp(operand,"sub")==0){
+		if(type_flag==0)
+			fprintf(file, "	isub\n");
+		else
+			fprintf(file, "	fsub\n");
+	}
+	else if(strcmp(operand,"mul")==0){
+		if(type_flag==0)
+			fprintf(file, "	imul\n");
+		else
+			fprintf(file, "	fmul\n");
+	}
+	else if(strcmp(operand,"div")==0){
+		if(type_flag==0)
+			fprintf(file, "	idiv\n");
+		else
+			fprintf(file, "	fdiv\n");
+	}
+	else if(strcmp(operand,"mod")==0){
+		if(type_flag==0)
+			fprintf(file, "	irem\n");
+		else
+			Error=7;
+	}
+	--stack_pointer[Scope];
+	if(type_flag==0)
+		strcpy(stack_type[Scope][stack_pointer[Scope]],"int");
+	else
+		strcpy(stack_type[Scope][stack_pointer[Scope]],"float");
+}
+
+void type_casting()
+{
+	if(strcmp(stack_type[Scope][stack_pointer[Scope]-1],"int")==0 && strcmp(stack_type[Scope][stack_pointer[Scope]],"int")==0){
+		type_flag=0;	//0 for int
+	}
+	else if(strcmp(stack_type[Scope][stack_pointer[Scope]-1],"int")==0 && strcmp(stack_type[Scope][stack_pointer[Scope]],"float")==0){
+		fprintf(file, "	swap\n");
+		fprintf(file, " i2f\n");
+		fprintf(file, "	swap\n");
+		type_flag=1;	//1 for float
+	}
+	else if(strcmp(stack_type[Scope][stack_pointer[Scope]-1],"float")==0 && strcmp(stack_type[Scope][stack_pointer[Scope]],"int")==0){
+		fprintf(file, " i2f\n");
+		type_flag=1;	//1 for float
+	}
+	else if(strcmp(stack_type[Scope][stack_pointer[Scope]-1],"float")==0 && strcmp(stack_type[Scope][stack_pointer[Scope]],"float")==0){
+		type_flag=1;	//1 for float
+	}
+	else
+		Error=6;
 }
 
 void Sem_Err()
@@ -721,6 +875,10 @@ void Sem_Err()
 		s="Redeclared function";
 	else if(Error==5)
 		s="Redefined function";
+	else if(Error==6)
+		s="Not int or float arithmetic operation";
+	else if(Error==7)
+		s="it can only accept \"int mod int\"";
 	
 	printf("\n|-----------------------------------------------|\n");
 	if(buf[strlen(buf)-1]=='\n')
@@ -771,6 +929,8 @@ void create_symbol()
 		sym_table[Scope][i].function_status=-1;
 	}
 	Index[Scope]=-1;
+	memset(stack_type[Scope],0,sizeof(stack_type[Scope]));
+	memset(stack_pointer,-1,sizeof(stack_pointer));
 }
 
 int insert_symbol()
@@ -856,7 +1016,8 @@ int lookup_symbol(char *id)
 	}
 }
 
-void dump_symbol(int index) {
+void dump_symbol(int index)
+{
 	int i,j,entry;
 	if(index>=0){
 		printf("\n%-10s%-10s%-12s%-10s%-10s%-10s\n\n",

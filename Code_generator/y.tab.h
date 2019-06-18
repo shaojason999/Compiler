@@ -82,16 +82,16 @@ extern int yydebug;
     RET = 292,
     CONT = 293,
     BREAK = 294,
-    STR_CONST = 295,
-    C_COMMENT = 296,
-    CPP_COMMENT = 297,
-    SEMICOLON = 298,
-    ID = 299,
-    VOID = 300,
-    INT = 301,
-    FLOAT = 302,
-    STRING = 303,
-    BOOL = 304,
+    C_COMMENT = 295,
+    CPP_COMMENT = 296,
+    SEMICOLON = 297,
+    ID = 298,
+    VOID = 299,
+    INT = 300,
+    FLOAT = 301,
+    STRING = 302,
+    BOOL = 303,
+    STR_CONST = 304,
     I_CONST = 305,
     F_CONST = 306,
     TRUE = 307,
@@ -136,16 +136,16 @@ extern int yydebug;
 #define RET 292
 #define CONT 293
 #define BREAK 294
-#define STR_CONST 295
-#define C_COMMENT 296
-#define CPP_COMMENT 297
-#define SEMICOLON 298
-#define ID 299
-#define VOID 300
-#define INT 301
-#define FLOAT 302
-#define STRING 303
-#define BOOL 304
+#define C_COMMENT 295
+#define CPP_COMMENT 296
+#define SEMICOLON 297
+#define ID 298
+#define VOID 299
+#define INT 300
+#define FLOAT 301
+#define STRING 302
+#define BOOL 303
+#define STR_CONST 304
 #define I_CONST 305
 #define F_CONST 306
 #define TRUE 307
@@ -156,7 +156,7 @@ extern int yydebug;
 
 union YYSTYPE
 {
-#line 70 "compiler_hw3.y" /* yacc.c:1909  */
+#line 78 "compiler_hw3.y" /* yacc.c:1909  */
 
     int i_val;
     double f_val;
