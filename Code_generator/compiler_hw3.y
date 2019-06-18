@@ -16,6 +16,7 @@ extern char buf[256];  // Get current code line from lex
 
 FILE *file;
 
+
 struct SYMBOL_TABLE{
 	int index;
 	char name[30];
