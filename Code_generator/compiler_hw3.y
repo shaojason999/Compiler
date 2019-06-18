@@ -60,6 +60,7 @@ int hash(char *,int);
 void create_par_type_list();
 int get_return_type(char type[10]);
 void find_index_and_scope();
+void store_code_gen();
 
 %}
 
@@ -81,13 +82,12 @@ void find_index_and_scope();
 %token LB RB LCB RCB LSB RSB COMMA
 %token PRINT
 %token IF ELSE FOR WHILE RET CONT BREAK
-%token STR_CONST
 %token C_COMMENT
 %token CPP_COMMENT
 %token SEMICOLON
 
 /* Token with return, which need to sepcify type */
-%token <string> ID VOID INT FLOAT STRING BOOL
+%token <string> ID VOID INT FLOAT STRING BOOL STR_CONST
 %token <i_val> I_CONST
 %token <f_val> F_CONST
 %token <boolean> TRUE FALSE
@@ -437,22 +437,7 @@ local_declarator_list
 			strcpy(Error_ID,Variable);
 		}
 		else if(Result==0 && function_legal_flag==1){	//only if function defined successfully, code_gen inside the compound statement is needed
-			int type_flag;
-			find_index_and_scope();	//use global variables: Find_scope, Find_index
-			type_flag=get_return_type(Type);
-			
-			if(Find_scope>0){
-				if(type_flag==0)	//int
-					fprintf(file, "	istore %d\n",Find_index);
-				else if(type_flag==1)	//float
-					fprintf(file, "	fstore %d\n",Find_index);
-				else if(type_flag==2)	//bool
-					fprintf(file, "	istore %d\n",Find_index);
-				else if(type_flag==4)	//string
-					fprintf(file, "	astore %d\n",Find_index);
-			}
-			else if(Find_scope==0)	//attetion: no string type is in the global scope
-				fprintf(file, "	getstatic %s/%s %c\n",FILE_NAME,Variable,RETURN_TYPE[type_flag]);
+			store_code_gen();
 		}
 	} 
 	| local_declarator_list COMMA local_declarator {
@@ -465,30 +450,15 @@ local_declarator_list
 			strcpy(Error_ID,Variable);
 		}
 		else if(Result==0 && function_legal_flag==1){	//only if function defined successfully, code_gen inside the compound statement is needed
-			int type_flag;
-			find_index_and_scope();	//use global variables: Find_scope, Find_index
-			type_flag=get_return_type(Type);
-			
-			if(Find_scope>0){
-				if(type_flag==0)	//int
-					fprintf(file, "	istore %d\n",Find_index);
-				else if(type_flag==1)	//float
-					fprintf(file, "	fstore %d\n",Find_index);
-				else if(type_flag==2)	//bool
-					fprintf(file, "	istore %d\n",Find_index);
-				else if(type_flag==4)	//string
-					fprintf(file, "	astore %d\n",Find_index);
-			}
-			else if(Find_scope==0)	//attetion: no string type is in the global scope
-				fprintf(file, "	getstatic %s/%s %c\n",FILE_NAME,Variable,RETURN_TYPE[type_flag]);
+			store_code_gen();
 		}
 	} 
 ;
 
 local_declarator
-	: ID {strcpy(Variable,$1);}
+	: ID {strcpy(Variable,$1); fprintf(file, "	ldc 0\n");}
 	| ID ASGN assignment_expression {strcpy(Variable,$1);}
-	| ID ASGN STR_CONST {strcpy(Variable,$1);}
+	| ID ASGN STR_CONST {strcpy(Variable,$1); fprintf(file, "	ldc %s\n",$3);}
 ;
 
 expression_statement
@@ -703,17 +673,39 @@ void find_index_and_scope()
 	Find_scope=-1;	//no found in every scope
 	Find_index=0;
 	for(scope=Scope;scope>=0;--scope){
-		index=hash(Variable,i);
-		if(sym_table[scope][index].index==-1)	//not found in this scope
-			continue;
-		else if(strcmp(sym_table[scope][index].name,Variable)==0){
-			Find_scope=scope;
-			Find_index=sym_table[scope][index].index;
-			for(j=1;j<scope;++j)	//get the number of variables from scope 1 to (scope-1)
-				Find_index+=(Index[scope]+1);
-			return;
+		for(i=0;i<ENTRY;++i){
+			index=hash(Variable,i);
+			if(sym_table[scope][index].index==-1)	//not found in this scope
+				i=ENTRY;
+			else if(strcmp(sym_table[scope][index].name,Variable)==0){
+				Find_scope=scope;
+				Find_index=sym_table[scope][index].index;
+				for(j=1;j<scope;++j)	//get the number of variables from scope 1 to (scope-1)
+					Find_index+=(Index[scope]+1);
+				return;
+			}
 		}
 	}
+}
+
+void store_code_gen()
+{
+	int type_flag;
+	find_index_and_scope();	//use global variables: Find_scope, Find_index
+	type_flag=get_return_type(Type);
+	
+	if(Find_scope>0){
+		if(type_flag==0)	//int
+			fprintf(file, "	istore %d\n",Find_index);
+		else if(type_flag==1)	//float
+			fprintf(file, "	fstore %d\n",Find_index);
+		else if(type_flag==2)	//bool
+			fprintf(file, "	istore %d\n",Find_index);
+		else if(type_flag==4)	//string
+			fprintf(file, "	astore %d\n",Find_index);
+	}
+	else if(Find_scope==0)	//attetion: no string type is in the global scope
+		fprintf(file, "	getstatic %s/%s %c\n",FILE_NAME,Variable,RETURN_TYPE[type_flag]);
 }
 
 void Sem_Err()
