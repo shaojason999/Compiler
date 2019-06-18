@@ -7,6 +7,7 @@
 
 #define SCOPE 10
 #define ENTRY 100
+#define FILE_NAME "compiler_hw3"
 
 extern int yylineno;
 extern int yylex();
@@ -15,7 +16,6 @@ extern char* yytext;   // Get current token from lex
 extern char buf[256];  // Get current code line from lex
 
 FILE *file;
-
 
 struct SYMBOL_TABLE{
 	int index;
@@ -40,11 +40,13 @@ char Par[10][10],Par_id[10][30];
 struct SYMBOL_TABLE sym_table[SCOPE][ENTRY];
 
 int type_flag;	//-1 for no assign, 0 for int, 1 for float, 2 for bool
-int function_legal_flag;
+int function_legal_flag;	//whether to generate code for function
 int temp_int;
 float temp_float;
 bool temp_bool;
 char Par_type_list[10],return_type[10];
+char RETURN_TYPE[4]="IFZV";
+int Find_scope,Find_index;
 
 /* Symbol table function*/
 void create_symbol();
@@ -52,7 +54,12 @@ int insert_symbol();
 int lookup_symbol(char *id);
 void dump_symbol(int index);
 
+int hash(char *,int);
+
+/* code generation function */
 void create_par_type_list();
+int get_return_type(char type[10]);
+void find_index_and_scope();
 
 %}
 
@@ -231,17 +238,11 @@ function
 		else if(Result==0){	//code generation
 			function_legal_flag=1;
 
-			if(strcmp($1,"int")==0)
-				strcpy(return_type,"I");
-			else if(strcmp($1,"float")==0)
-				strcpy(return_type,"F");
-			else if(strcmp($1,"bool")==0)
-				strcpy(return_type,"Z");
-			else if(strcmp($1,"void")==0)
-				strcpy(return_type,"V");
+			int type_flag;
+			type_flag=get_return_type($1);
 
 			if(strcmp($2,"main")==0)
-				fprintf(file, ".method public static main([Ljava/lang/String;)%s\n",return_type);
+				fprintf(file, ".method public static main([Ljava/lang/String;)%c\n",RETURN_TYPE[type_flag]);
 			else
 				fprintf(file, ".method public static %s()%s\n",$2,return_type);
 			fprintf(file, ".limit stack 50\n");
@@ -249,13 +250,16 @@ function
 		}
 	}compound_statement{
 		if(function_legal_flag==1){
-			if(strcmp($1,"int")==0)
+			int type_flag;
+			type_flag=get_return_type($1);
+
+			if(type_flag==0)
 				fprintf(file, "	ireturn\n");
-			else if(strcmp($1,"float")==0)
+			else if(type_flag==1)
 				fprintf(file, "	freturn\n");
-			else if(strcmp($1,"bool")==0)
+			else if(type_flag==2)
 				fprintf(file, "	zreturn\n");
-			else if(strcmp($1,"void")==0)
+			else if(type_flag==3)
 				fprintf(file, "	return\n");
 			fprintf(file, ".end method\n");
 			function_legal_flag=0;
@@ -279,17 +283,11 @@ function
 		if(Result==0){
 			function_legal_flag=1;
 
-			if(strcmp($1,"int")==0)
-				strcpy(return_type,"I");
-			else if(strcmp($1,"float")==0)
-				strcpy(return_type,"F");
-			else if(strcmp($1,"bool")==0)
-				strcpy(return_type,"Z");
-			else if(strcmp($1,"void")==0)
-				strcpy(return_type,"V");
+			int type_flag;
+			type_flag=get_return_type($1);
 
 			if(strcmp($2,"main")==0)
-				fprintf(file, ".method public static main([Ljava/lang/String;)%s\n",return_type);
+				fprintf(file, ".method public static main([Ljava/lang/String;)%c\n",RETURN_TYPE[type_flag]);
 			else{
 				create_par_type_list();
 				fprintf(file, ".method public static %s(%s)%s\n",$2,Par_type_list,$1);
@@ -299,14 +297,17 @@ function
 		}
 	}compound_statement{
 		if(function_legal_flag==1){
-			if(strcmp($1,"int")==0)
+			int type_flag;
+			type_flag=get_return_type($1);
+
+			if(type_flag==0)
 				fprintf(file, "	ireturn\n");
-			else if(strcmp($1,"float")==0)
+			else if(type_flag==1)
 				fprintf(file, "	freturn\n");
-			else if(strcmp($1,"bool")==0)
+			else if(type_flag==2)
 				fprintf(file, "	zreturn\n");
-			else if(strcmp($1,"void")==0)
-				fprintf(file, "return\n");
+			else if(type_flag==3)
+				fprintf(file, "	return\n");
 			fprintf(file, ".end method\n");
 			function_legal_flag=0;
 		}
@@ -383,9 +384,6 @@ compound_statement
 			}
 			function_par_flag=0;
 		}
-		if(function_legal_flag==1){	//only if function defined successfully, code_gen is needed
-
-		}
 	}RCB {
 		dump_flag=1;
 	}
@@ -438,6 +436,24 @@ local_declarator_list
 			Error=Result;
 			strcpy(Error_ID,Variable);
 		}
+		else if(Result==0 && function_legal_flag==1){	//only if function defined successfully, code_gen inside the compound statement is needed
+			int type_flag;
+			find_index_and_scope();	//use global variables: Find_scope, Find_index
+			type_flag=get_return_type(Type);
+			
+			if(Find_scope>0){
+				if(type_flag==0)	//int
+					fprintf(file, "	istore %d\n",Find_index);
+				else if(type_flag==1)	//float
+					fprintf(file, "	fstore %d\n",Find_index);
+				else if(type_flag==2)	//bool
+					fprintf(file, "	istore %d\n",Find_index);
+				else if(type_flag==4)	//string
+					fprintf(file, "	astore %d\n",Find_index);
+			}
+			else if(Find_scope==0)	//attetion: no string type is in the global scope
+				fprintf(file, "	getstatic %s/%s %c\n",FILE_NAME,Variable,RETURN_TYPE[type_flag]);
+		}
 	} 
 	| local_declarator_list COMMA local_declarator {
 		Function_status=-1;
@@ -447,6 +463,24 @@ local_declarator_list
 		if(Result!=0){	//redeclared
 			Error=Result;
 			strcpy(Error_ID,Variable);
+		}
+		else if(Result==0 && function_legal_flag==1){	//only if function defined successfully, code_gen inside the compound statement is needed
+			int type_flag;
+			find_index_and_scope();	//use global variables: Find_scope, Find_index
+			type_flag=get_return_type(Type);
+			
+			if(Find_scope>0){
+				if(type_flag==0)	//int
+					fprintf(file, "	istore %d\n",Find_index);
+				else if(type_flag==1)	//float
+					fprintf(file, "	fstore %d\n",Find_index);
+				else if(type_flag==2)	//bool
+					fprintf(file, "	istore %d\n",Find_index);
+				else if(type_flag==4)	//string
+					fprintf(file, "	astore %d\n",Find_index);
+			}
+			else if(Find_scope==0)	//attetion: no string type is in the global scope
+				fprintf(file, "	getstatic %s/%s %c\n",FILE_NAME,Variable,RETURN_TYPE[type_flag]);
 		}
 	} 
 ;
@@ -611,48 +645,8 @@ loop_selection_statement
 ;
 
 loop_compound_statement
-	: LCB {
-		create_symbol();
-		/*for function parameter*/
-		if(function_par_flag){
-			int i,index;
-			for(i=0;i<sym_table[Scope-1][order[Scope-1][index]].par_count;++i){
-				strcpy(Variable,Par_id[i]);
-				strcpy(Kind,"parameter");
-				strcpy(Type,Par[i]);
-				Par_count=0;
-				Result=insert_symbol();
-				if(Result!=0 && Error==0){	//redefine variable
-					Error=Result;
-					strcpy(Error_ID,Variable);
-				}
-			}
-			function_par_flag=0;
-		}
-	}RCB {
-		dump_flag=1;
-	}
-	| LCB {
-		create_symbol();
-		/*for function parameter*/
-		if(function_par_flag){
-			int i,index;
-			for(i=0;i<sym_table[Scope-1][order[Scope-1][index]].par_count;++i){
-				strcpy(Variable,Par_id[i]);
-				strcpy(Kind,"parameter");
-				strcpy(Type,Par[i]);
-				Par_count=0;
-				Result=insert_symbol();
-				if(Result!=0 && Error==0){	//redefine variable
-					Error=Result;
-					strcpy(Error_ID,Variable);
-				}
-			}
-			function_par_flag=0;
-		}
-	}loop_block_item_list RCB {
-		dump_flag=1;
-	}
+	: LCB RCB
+	| LCB loop_block_item_list RCB
 ;
 
 loop_block_item_list
@@ -688,6 +682,40 @@ void create_par_type_list()
 			strcat(Par[Par_count],"Z");
 	}
 }
+
+int get_return_type(char type[10])
+{
+	if(strcmp(type,"int")==0)
+		return 0;
+	else if(strcmp(type,"float")==0)
+		return 1;
+	else if(strcmp(type,"bool")==0)
+		return 2;
+	else if(strcmp(type,"void")==0)
+		return 3;
+	else if(strcmp(type,"string")==0)
+		return 4;
+}
+
+void find_index_and_scope()
+{
+	int i,j,scope,index;
+	Find_scope=-1;	//no found in every scope
+	Find_index=0;
+	for(scope=Scope;scope>=0;--scope){
+		index=hash(Variable,i);
+		if(sym_table[scope][index].index==-1)	//not found in this scope
+			continue;
+		else if(strcmp(sym_table[scope][index].name,Variable)==0){
+			Find_scope=scope;
+			Find_index=sym_table[scope][index].index;
+			for(j=1;j<scope;++j)	//get the number of variables from scope 1 to (scope-1)
+				Find_index+=(Index[scope]+1);
+			return;
+		}
+	}
+}
+
 void Sem_Err()
 {
 	char *s;
@@ -757,7 +785,7 @@ int insert_symbol()
 {
 	int index,i,j;
 	/*only find in this scope*/
-	for(i=0;i<1000;++i){
+	for(i=0;i<ENTRY;++i){
 		index=hash(Variable,i);
 		if(sym_table[Scope][index].index==-1){	//found the empty entry
 			sym_table[Scope][index].index=++Index[Scope];
@@ -880,10 +908,13 @@ int main(int argc, char** argv)
 {
 	init();
 	create_symbol();
+
+	char temp_name[20]=FILE_NAME;
+	strcat(temp_name,".j");
     
-    	file = fopen("compiler_hw3.j","w");
-	fprintf(file,   ".class public compiler_hw3\n"
-			".super java/lang/Object\n");
+    	file = fopen(temp_name,"w");
+	fprintf(file, ".class public %s\n",FILE_NAME);
+	fprintf(file, ".super java/lang/Object\n");
 
 	yyparse();
 

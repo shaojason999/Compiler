@@ -5,5 +5,6 @@
 .method public static main([Ljava/lang/String;)V
 .limit stack 50
 .limit locals 50
+	istore 0
 	return
 .end method
