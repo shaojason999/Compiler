@@ -9,6 +9,8 @@
 #define ENTRY 100
 #define STACK_SIZE 50
 #define FILE_NAME "compiler_hw3"
+#define LABEL "Label"
+#define EXIT "Exit"
 
 extern int yylineno;
 extern int yylex();
@@ -56,6 +58,7 @@ int stack_pointer[SCOPE];
 int function_type[SCOPE];
 int assignment_layer;	//determine whether generate load code after store code, e.g. a=b=1; only b need to load after store
 int assignment_type[10];	//assignment_type[assignment_layer] to record what kind of assignment_operator; 0 for =, 1 for +=, ...
+int label_count,exit_count;
 
 /* Symbol table function*/
 void create_symbol();
@@ -71,8 +74,10 @@ void get_return_type(char type[10]);
 void find_index_and_scope_and_type();
 void store_code_gen();
 void load_code_gen();
-void arith_code_gen(char operator[10]);
+void compare_result_code_gen(char compare_type[10]);	//use for ==, !=, >, >=, <, <=
+void compare(char operator[10]);	//use for ==, !=, >, >=, <, <=
 void return_code_gen();
+void arith_code_gen(char operator[10]);
 void type_casting();
 
 %}
@@ -288,8 +293,8 @@ function
 				fprintf(file, ".method public static main([Ljava/lang/String;)%c\n",Return_type[type_flag]);
 			else
 				fprintf(file, ".method public static %s()%s\n",$2,return_type);
-			fprintf(file, ".limit stack 50\n");
-			fprintf(file, ".limit locals 50\n");
+			fprintf(file, ".limit stack %d\n",STACK_SIZE);
+			fprintf(file, ".limit locals %d\n",STACK_SIZE);
 		}
 	}compound_statement{
 		fprintf(file, ".end method\n");
@@ -321,8 +326,8 @@ function
 				create_par_type_list();
 				fprintf(file, ".method public static %s(%s)%s\n",$2,Par_type_list,$1);
 			}
-			fprintf(file, ".limit stack 50\n");
-			fprintf(file, ".limit locals 50\n");
+			fprintf(file, ".limit stack %d\n",STACK_SIZE);
+			fprintf(file, ".limit locals %d\n",STACK_SIZE);
 		}
 	}compound_statement{
 		fprintf(file, ".end method\n");
@@ -519,7 +524,7 @@ expression_statement
 
 expression_list
 	: assignment_expression
-	| expression_list COMMA  assignment_expression
+	| expression_list COMMA assignment_expression //when there is a COMMA, the left expression_list is useless
 ;
 
 assignment_expression
@@ -600,16 +605,17 @@ logical_and_expression
 
 equality_expression
 	: relational_expression
-	| equality_expression EQ relational_expression
-	| equality_expression NE relational_expression
+	| equality_expression EQ relational_expression {compare("EQ");}
+	| equality_expression NE relational_expression {compare("NE");}
 ;
+
 
 relational_expression
 	: additive_expression
-	| relational_expression MT additive_expression
-	| relational_expression LT additive_expression
-	| relational_expression MTE additive_expression
-	| relational_expression LTE additive_expression
+	| relational_expression MT additive_expression {compare("MT");}
+	| relational_expression LT additive_expression {compare("LT");}
+	| relational_expression MTE additive_expression {compare("MTE");}
+	| relational_expression LTE additive_expression {compare("LTE");}
 ;
 
 additive_expression
@@ -853,6 +859,38 @@ void load_code_gen()
 		strcpy(stack_type[Scope][stack_pointer[Scope]],"bool");
 	else if(type_flag==4)	//string
 		strcpy(stack_type[Scope][stack_pointer[Scope]],"string");
+}
+
+void compare_result_code_gen(char compare[10])
+{
+	fprintf(file, "	%s %s_%d\n",compare,LABEL,label_count);
+	fprintf(file, "	ldc 0\n");
+	fprintf(file, "	goto %s_%d\n",EXIT,exit_count);
+	fprintf(file, "%s_%d:\n",LABEL,label_count);
+	fprintf(file, "	ldc 1\n");
+	fprintf(file, "%s_%d:\n",EXIT,exit_count);
+	++label_count;
+	++exit_count;
+}
+
+void compare(char operator[10])	//get the value(1 or 0) of the compare relation
+{
+	arith_code_gen("sub");
+	if(type_flag==1)
+		fprintf(file, "	f2i\n");
+
+	if(strcmp(operator,"EQ")==0)
+		compare_result_code_gen("ifeq");
+	else if(strcmp(operator,"NE")==0)
+		compare_result_code_gen("ifnq");
+	else if(strcmp(operator,"MT")==0)
+		compare_result_code_gen("ifgt");
+	else if(strcmp(operator,"LT")==0)
+		compare_result_code_gen("iflt");
+	else if(strcmp(operator,"MTE")==0)
+		compare_result_code_gen("ifge");
+	else if(strcmp(operator,"LTE")==0)
+		compare_result_code_gen("ifle");
 }
 
 void return_code_gen()
@@ -1145,6 +1183,9 @@ void init()
 
 	function_legal_flag=0;
 	assignment_layer=0;
+
+	label_count=0;
+	exit_count=0;
 }
 
 int main(int argc, char** argv)

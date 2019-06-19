@@ -42,5 +42,11 @@ my:
 	@java -jar jasmin.jar ${FNAME}.j
 	@java ${FNAME} 
 
+my2:
+	@./${PARSER} < ./test2.c
+	@echo -e "\n\033[1;33mmain.class output\033[0m"
+	@java -jar jasmin.jar ${FNAME}.j
+	@java ${FNAME} 
+
 clean:
 	rm -f ${PARSER} ${OBJECT} 

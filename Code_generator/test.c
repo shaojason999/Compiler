@@ -11,6 +11,9 @@ void main()
 	string c="abc";
 	bool d;
 
+	a=(1,2,3),(4,5,6);
+	print(a);
+
 	print(b);
 
 	b=b+a;
