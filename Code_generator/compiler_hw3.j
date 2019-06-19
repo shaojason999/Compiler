@@ -1,8 +1,18 @@
 .class public compiler_hw3
 .super java/lang/Object
+.field public static aaa I = 1
+.field public static bbb F = 0.100000
 .method public static main([Ljava/lang/String;)V
 .limit stack 50
 .limit locals 50
+	getstatic compiler_hw3/aaa I
+	getstatic java/lang/System/out Ljava/io/PrintStream;
+	swap
+	invokevirtual java/io/PrintStream/println(I)V
+	getstatic compiler_hw3/bbb F
+	getstatic java/lang/System/out Ljava/io/PrintStream;
+	swap
+	invokevirtual java/io/PrintStream/println(F)V
 	ldc 0
 	istore 0
 	ldc 1.200000
@@ -11,6 +21,10 @@
 	astore 2
 	ldc 0
 	istore 3
+	fload 1
+	getstatic java/lang/System/out Ljava/io/PrintStream;
+	swap
+	invokevirtual java/io/PrintStream/println(F)V
 	fload 1
 	iload 0
 	i2f
@@ -64,14 +78,14 @@
 	swap
 	invokevirtual java/io/PrintStream/println(I)V
 	ldc 0
-	istore 1
+	istore 4
 	iload 0
 	iload 0
 	ldc 1
 	isub
 	istore 0
-	istore 1
-	iload 1
+	istore 4
+	iload 4
 	getstatic java/lang/System/out Ljava/io/PrintStream;
 	swap
 	invokevirtual java/io/PrintStream/println(I)V
@@ -79,6 +93,30 @@
 	getstatic java/lang/System/out Ljava/io/PrintStream;
 	swap
 	invokevirtual java/io/PrintStream/println(I)V
+	ldc "hi!"
+	getstatic java/lang/System/out Ljava/io/PrintStream;
+	swap
+	invokevirtual java/io/PrintStream/println(Ljava/lang/String;)V
+	ldc 0
+	istore 5
+	ldc 0
+	istore 6
+	iload 5
+	getstatic java/lang/System/out Ljava/io/PrintStream;
+	swap
+	invokevirtual java/io/PrintStream/println(I)V
+	iload 6
+	getstatic java/lang/System/out Ljava/io/PrintStream;
+	swap
+	invokevirtual java/io/PrintStream/println(I)V
+	aload 2
+	getstatic java/lang/System/out Ljava/io/PrintStream;
+	swap
+	invokevirtual java/io/PrintStream/println(Ljava/lang/String;)V
+	iload 3
+	getstatic java/lang/System/out Ljava/io/PrintStream;
+	swap
+	invokevirtual java/io/PrintStream/println(Z)V
 	ldc 1.200000
 	iload 0
 	swap
@@ -132,7 +170,7 @@
 	getstatic java/lang/System/out Ljava/io/PrintStream;
 	swap
 	invokevirtual java/io/PrintStream/println(F)V
-	ldc "hi"
+	ldc "hi!!"
 	getstatic java/lang/System/out Ljava/io/PrintStream;
 	swap
 	invokevirtual java/io/PrintStream/println(Ljava/lang/String;)V

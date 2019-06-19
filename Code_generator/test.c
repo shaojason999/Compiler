@@ -1,9 +1,17 @@
+int aaa=1;
+float bbb=0.1;
+
 void main()
 {
+	print(aaa);
+	print(bbb);
+
 	int a=0;
 	float b=1.2;
 	string c="abc";
 	bool d;
+
+	print(b);
 
 	b=b+a;
 	b=1*2+b;
@@ -16,6 +24,15 @@ void main()
 		e=a--;
 		print(e);
 		print(a);
+		print("hi!");
+		{
+			int e;
+			int aaa;
+			print(e);
+			print(aaa);
+			print(c);
+			print(d);
+		}
 	}
 
 	a*=1.2;
@@ -27,7 +44,7 @@ void main()
 	print(b);
 	print(1);
 	print(1.2);
-	print("hi");
+	print("hi!!");
 
 	a--;
 	print(a);

@@ -205,8 +205,8 @@ const_without_str
 		temp_int=$1;
 		type_flag=0;
 		if(global_flag==0){	//0 for local
-			++stack_pointer[Scope];
 			fprintf(file, "	ldc %d\n",temp_int);
+			++stack_pointer[Scope];
 			strcpy(stack_type[Scope][stack_pointer[Scope]],"int");
 		}
 	}
@@ -214,8 +214,8 @@ const_without_str
 		temp_float=$1;
 		type_flag=1;
 		if(global_flag==0){	//0 for local
-			++stack_pointer[Scope];
 			fprintf(file, "	ldc %f\n",temp_float);
+			++stack_pointer[Scope];
 			strcpy(stack_type[Scope][stack_pointer[Scope]],"float");
 		}
 	}
@@ -223,8 +223,8 @@ const_without_str
 		temp_bool=1;
 		type_flag=2;
 		if(global_flag==0){	//0 for local
-			++stack_pointer[Scope];
 			fprintf(file, "	ldc %d\n",temp_bool);
+			++stack_pointer[Scope];
 			strcpy(stack_type[Scope][stack_pointer[Scope]],"bool");
 		}
 	}
@@ -232,8 +232,8 @@ const_without_str
 		temp_bool=0;
 		type_flag=2;
 		if(global_flag==0){	//0 for local
-			++stack_pointer[Scope];
 			fprintf(file, "	ldc %d\n",temp_bool);
+			++stack_pointer[Scope];
 			strcpy(stack_type[Scope][stack_pointer[Scope]],"bool");
 		}
 	}
@@ -370,7 +370,10 @@ print_statement
 			load_code_gen();	//we can gen load code and find type_flag here
 			fprintf(file, "	getstatic java/lang/System/out Ljava/io/PrintStream;\n");
 			fprintf(file, "	swap\n");
-			fprintf(file, "	invokevirtual java/io/PrintStream/println(%c)V\n",Return_type[type_flag]);
+			if(type_flag!=4)
+				fprintf(file, "	invokevirtual java/io/PrintStream/println(%c)V\n",Return_type[type_flag]);
+			else
+				fprintf(file, "	invokevirtual java/io/PrintStream/println(Ljava/lang/String;)V\n");
 		}
 	}
 	| PRINT LB const_without_str RB SEMICOLON{
@@ -380,6 +383,8 @@ print_statement
 	}
 	| PRINT LB STR_CONST RB SEMICOLON{
 		fprintf(file, "	ldc %s\n",$3);
+		++stack_pointer[Scope];
+		strcpy(stack_type[Scope][stack_pointer[Scope]],"string");
 		fprintf(file, "	getstatic java/lang/System/out Ljava/io/PrintStream;\n");
 		fprintf(file, "	swap\n");
 		fprintf(file, "	invokevirtual java/io/PrintStream/println(Ljava/lang/String;)V\n");
@@ -490,18 +495,20 @@ local_declarator_list
 local_declarator
 	: ID {
 		strcpy(Variable,$1);
-		if(function_legal_flag==1)
+		if(function_legal_flag==1){
 			fprintf(file, "	ldc 0\n");
-		++stack_pointer[Scope];
-		strcpy(stack_type[Scope][stack_pointer[Scope]],"int");
+			++stack_pointer[Scope];
+			strcpy(stack_type[Scope][stack_pointer[Scope]],"int");
+		}
 	}
 	| ID ASGN {++assignment_layer;} assignment_expression {--assignment_layer; strcpy(Variable,$1);}
 	| ID ASGN STR_CONST {
 		strcpy(Variable,$1);
-		if(function_legal_flag==1)
+		if(function_legal_flag==1){
 			fprintf(file, "	ldc %s\n",$3);
-		++stack_pointer[Scope];
-		strcpy(stack_type[Scope][stack_pointer[Scope]],"string");
+			++stack_pointer[Scope];
+			strcpy(stack_type[Scope][stack_pointer[Scope]],"string");
+		}
 	}
 ;
 
@@ -657,16 +664,16 @@ postfix_expression
 	| LB expression_list RB
 	| bra_expression INC {
 		load_code_gen(); //in order to use the original value for later operation(not the value after INC), I load second time here
-		++stack_pointer[Scope];
 		fprintf(file, "	ldc 1\n");
+		++stack_pointer[Scope];
 		strcpy(stack_type[Scope][stack_pointer[Scope]],"int");
 		arith_code_gen("add");
 		store_code_gen();	//pop from the stack, so top-of-stack is now the original value(before INC)
 	}
 	| bra_expression DEC {
 		load_code_gen(); //in order to use the original value for later operation(not the value after DEC), I load second time here
-		++stack_pointer[Scope];
 		fprintf(file, "	ldc 1\n");
+		++stack_pointer[Scope];
 		strcpy(stack_type[Scope][stack_pointer[Scope]],"int");
 		arith_code_gen("sub");
 		store_code_gen();	//pop from the stack, so top-of-stack is now the original value(before DEC)
@@ -782,7 +789,7 @@ void find_index_and_scope_and_type()
 				Find_scope=scope;
 				Find_index=sym_table[scope][index].index;
 				for(j=1;j<scope;++j)	//get the number of variables from scope 1 to (scope-1)
-					Find_index+=(Index[scope]+1);
+					Find_index+=(Index[j]+1);
 				strcpy(Find_type,sym_table[scope][index].type);
 				return;
 			}
@@ -850,7 +857,6 @@ void load_code_gen()
 
 void return_code_gen()
 {
-	printf("123 %d %d %d\n",function_type[Scope],function_type[0],function_type[1]);
 	if(function_legal_flag!=1)
 		return;
 
