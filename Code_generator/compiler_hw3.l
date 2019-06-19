@@ -13,9 +13,11 @@ extern int Error,Scope,Function_status,dump_flag;
 extern int Index[10];
 extern void dump_symbol(int);
 char buf[BUF_SIZE];
+char str_buf[BUF_SIZE];
 
 /* This macro is used to record code line */
 #define CONCAT { strncat(buf, yytext, BUF_SIZE - strlen(buf) - 1); }
+#define CONCAT_STRING { strncat(str_buf, yytext, BUF_SIZE - strlen(str_buf) - 1); }
 %}
 
 /* Define regular expression label */
@@ -96,13 +98,14 @@ id			{letter}+({letter}|{digit})*
 "false"     { CONCAT return FALSE; }
 
  /* String Constant */
-\"			{ BEGIN STRING_STATE; CONCAT }
-<STRING_STATE>\"	{ BEGIN INITIAL; CONCAT return STR_CONST;}
-<STRING_STATE>[^"]*	{ CONCAT }
+\"			{ BEGIN STRING_STATE; CONCAT_STRING }
+#define CONCAT { strncat(buf, yytext, BUF_SIZE - strlen(buf) - 1); }
+<STRING_STATE>\"	{ BEGIN INITIAL; CONCAT_STRING strncat(buf,str_buf,BUF_SIZE-strlen(str_buf)-1); yylval.string=strdup(str_buf); return STR_CONST;}
+<STRING_STATE>[^"]*	{ CONCAT_STRING }
 
  /* Number Constant */
-{integer}	{ CONCAT; yylval.i_val=atoi(yytext); return I_CONST; }
-{float}		{ CONCAT; yylval.f_val=atof(yytext); return F_CONST; }
+{integer}	{ CONCAT yylval.i_val=atoi(yytext); return I_CONST; }
+{float}		{ CONCAT yylval.f_val=atof(yytext); return F_CONST; }
 
  /* C type Comment */
 "/*"			{ BEGIN COMMENT; CONCAT }
@@ -126,6 +129,7 @@ id			{letter}+({letter}|{digit})*
 			}
 			Error=0;
 			memset(buf,0,sizeof(buf));
+			memset(str_buf,0,sizeof(str_buf));
 			if(dump_flag==1){
 				dump_symbol(Index[Scope]);
 				dump_flag=0;

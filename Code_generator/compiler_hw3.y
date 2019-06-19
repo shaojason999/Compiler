@@ -53,6 +53,7 @@ int Find_scope,Find_index;
 char Find_type[10];
 char stack_type[SCOPE][STACK_SIZE][10];
 int stack_pointer[SCOPE];
+int function_type[SCOPE];
 int assignment_layer;	//determine whether generate load code after store code, e.g. a=b=1; only b need to load after store
 
 /* Symbol table function*/
@@ -69,7 +70,8 @@ void get_return_type(char type[10]);
 void find_index_and_scope_and_type();
 void store_code_gen();
 void load_code_gen();
-void arith_code_gen(char operand[10]);
+void arith_code_gen(char operator[10]);
+void return_code_gen();
 void type_casting();
 
 %}
@@ -139,7 +141,7 @@ global_declarator_list
 		else if(Result==0){
 			/*no void and string here*/
 			if(strcmp(Type,"int")==0){
-				if(type_flag!=-1)
+				if(type_flag!=-1)	//get type_flag from global_declarator
 					fprintf(file, ".field public static %s I = %d\n",Variable,temp_int);
 				else
 					fprintf(file, ".field public static %s I\n",Variable);
@@ -278,8 +280,8 @@ function
 		}
 		else if(Result==0){	//code generation
 			function_legal_flag=1;
-
 			get_return_type($1);
+			function_type[Scope]=type_flag;	//use for return_code_gen() (we need to know the return type of the function)
 
 			if(strcmp($2,"main")==0)
 				fprintf(file, ".method public static main([Ljava/lang/String;)%c\n",Return_type[type_flag]);
@@ -289,20 +291,8 @@ function
 			fprintf(file, ".limit locals 50\n");
 		}
 	}compound_statement{
-		if(function_legal_flag==1){
-			get_return_type($1);
-
-			if(type_flag==0)
-				fprintf(file, "	ireturn\n");
-			else if(type_flag==1)
-				fprintf(file, "	freturn\n");
-			else if(type_flag==2)
-				fprintf(file, "	zreturn\n");
-			else if(type_flag==3)
-				fprintf(file, "	return\n");
-			fprintf(file, ".end method\n");
-			function_legal_flag=0;
-		}
+		fprintf(file, ".end method\n");
+		function_legal_flag=0;
 	}
 	| type ID LB function_parameter_list RB {
 		int temp_count;
@@ -321,8 +311,8 @@ function
 
 		if(Result==0){
 			function_legal_flag=1;
-
 			get_return_type($1);
+			function_type[Scope]=type_flag;	//use for return_code_gen() (we need to know the return type of the function)
 
 			if(strcmp($2,"main")==0)
 				fprintf(file, ".method public static main([Ljava/lang/String;)%c\n",Return_type[type_flag]);
@@ -334,23 +324,10 @@ function
 			fprintf(file, ".limit locals 50\n");
 		}
 	}compound_statement{
-		if(function_legal_flag==1){
-			get_return_type($1);
-
-			if(type_flag==0)
-				fprintf(file, "	ireturn\n");
-			else if(type_flag==1)
-				fprintf(file, "	freturn\n");
-			else if(type_flag==2)
-				fprintf(file, "	zreturn\n");
-			else if(type_flag==3)
-				fprintf(file, "	return\n");
-			fprintf(file, ".end method\n");
-			function_legal_flag=0;
-		}
+		fprintf(file, ".end method\n");
+		function_legal_flag=0;
 	}
 ;
-
 
 function_parameter_list
 	: type ID {
@@ -401,6 +378,7 @@ print_statement
 		fprintf(file, "	invokevirtual java/io/PrintStream/println(%c)V\n",Return_type[type_flag]);
 	}
 	| PRINT LB STR_CONST RB SEMICOLON{
+		fprintf(file, "	ldc %s\n",$3);
 		fprintf(file, "	getstatic java/lang/System/out Ljava/io/PrintStream;\n");
 		fprintf(file, "	swap\n");
 		fprintf(file, "	invokevirtual java/io/PrintStream/println(Ljava/lang/String;)V\n");
@@ -413,8 +391,8 @@ comment
 ;
 
 jump_statement
-	: RET SEMICOLON
-	| RET statement_with_return
+	: RET SEMICOLON {return_code_gen();}
+	| RET statement_with_return {return_code_gen();}
 ;
 
 
@@ -771,7 +749,7 @@ void find_index_and_scope_and_type()
 				Find_index=sym_table[scope][index].index;
 				for(j=1;j<scope;++j)	//get the number of variables from scope 1 to (scope-1)
 					Find_index+=(Index[scope]+1);
-				strcat(Find_type,sym_table[scope][index].type);
+				strcpy(Find_type,sym_table[scope][index].type);
 				return;
 			}
 		}
@@ -835,37 +813,67 @@ void load_code_gen()
 		strcpy(stack_type[Scope][stack_pointer[Scope]],"string");
 }
 
-void arith_code_gen(char operand[10])
+void return_code_gen()
+{
+	printf("123 %d %d %d\n",function_type[Scope],function_type[0],function_type[1]);
+	if(function_legal_flag!=1)
+		return;
+
+	type_flag=function_type[Scope-1];
+	if(type_flag==0){
+		if(strcmp(stack_type[Scope][stack_pointer[Scope]],"int")!=0)
+			Error=8;
+		else
+			fprintf(file, "	ireturn\n");
+	}
+	else if(type_flag==1){
+			if(strcmp(stack_type[Scope][stack_pointer[Scope]],"float")!=0)
+				Error=8;
+		else
+				fprintf(file, "	freturn\n");
+		}
+	else if(type_flag==2){
+		if(strcmp(stack_type[Scope][stack_pointer[Scope]],"bool")!=0)
+			Error=8;
+		else
+			fprintf(file, "	zreturn\n");
+	}
+	else if(type_flag==3){
+			fprintf(file, "	return\n");
+	}
+}
+
+void arith_code_gen(char operator[10])
 {
 	if(function_legal_flag!=1)
 		return;
 
 	type_casting();
-	if(strcmp(operand,"add")==0){
+	if(strcmp(operator,"add")==0){
 		if(type_flag==0)
 			fprintf(file, "	iadd\n");
 		else	//type_flag==1
 			fprintf(file, "	fadd\n");
 	}
-	else if(strcmp(operand,"sub")==0){
+	else if(strcmp(operator,"sub")==0){
 		if(type_flag==0)
 			fprintf(file, "	isub\n");
 		else
 			fprintf(file, "	fsub\n");
 	}
-	else if(strcmp(operand,"mul")==0){
+	else if(strcmp(operator,"mul")==0){
 		if(type_flag==0)
 			fprintf(file, "	imul\n");
 		else
 			fprintf(file, "	fmul\n");
 	}
-	else if(strcmp(operand,"div")==0){
+	else if(strcmp(operator,"div")==0){
 		if(type_flag==0)
 			fprintf(file, "	idiv\n");
 		else
 			fprintf(file, "	fdiv\n");
 	}
-	else if(strcmp(operand,"mod")==0){
+	else if(strcmp(operator,"mod")==0){
 		if(type_flag==0)
 			fprintf(file, "	irem\n");
 		else
@@ -885,12 +893,12 @@ void type_casting()
 	}
 	else if(strcmp(stack_type[Scope][stack_pointer[Scope]-1],"int")==0 && strcmp(stack_type[Scope][stack_pointer[Scope]],"float")==0){
 		fprintf(file, "	swap\n");
-		fprintf(file, " i2f\n");
+		fprintf(file, "	i2f\n");
 		fprintf(file, "	swap\n");
 		type_flag=1;	//1 for float
 	}
 	else if(strcmp(stack_type[Scope][stack_pointer[Scope]-1],"float")==0 && strcmp(stack_type[Scope][stack_pointer[Scope]],"int")==0){
-		fprintf(file, " i2f\n");
+		fprintf(file, "	i2f\n");
 		type_flag=1;	//1 for float
 	}
 	else if(strcmp(stack_type[Scope][stack_pointer[Scope]-1],"float")==0 && strcmp(stack_type[Scope][stack_pointer[Scope]],"float")==0){
@@ -916,7 +924,9 @@ void Sem_Err()
 	else if(Error==6)
 		s="Not int or float arithmetic operation";
 	else if(Error==7)
-		s="it can only accept \"int mod int\"";
+		s="It can only accept \"int mod int\"";
+	else if(Error==8)
+		s="Function return type is not the same";
 	
 	printf("\n|-----------------------------------------------|\n");
 	if(buf[strlen(buf)-1]=='\n')
