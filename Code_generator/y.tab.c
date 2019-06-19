@@ -622,10 +622,10 @@ static const yytype_uint16 yyrline[] =
      520,   556,   576,   577,   578,   579,   580,   581,   585,   586,
      590,   591,   595,   596,   597,   601,   602,   603,   604,   605,
      609,   610,   611,   615,   616,   617,   618,   622,   623,   624,
-     630,   642,   642,   650,   650,   658,   659,   660,   661,   665,
-     677,   681,   682,   683,   687,   691,   692,   693,   694,   695,
-     696,   697,   701,   702,   703,   707,   708,   712,   713,   717,
-     718,   719,   723,   724,   725
+     628,   640,   640,   648,   648,   656,   657,   658,   666,   677,
+     689,   693,   694,   695,   699,   703,   704,   705,   706,   707,
+     708,   709,   713,   714,   715,   719,   720,   724,   725,   729,
+     730,   731,   735,   736,   737
 };
 #endif
 
@@ -2215,7 +2215,7 @@ yyreduce:
     break;
 
   case 100:
-#line 630 "compiler_hw3.y" /* yacc.c:1646  */
+#line 628 "compiler_hw3.y" /* yacc.c:1646  */
     {
 		Function_status=-1;
 		Result=lookup_symbol((yyvsp[0].string));
@@ -2232,7 +2232,7 @@ yyreduce:
     break;
 
   case 101:
-#line 642 "compiler_hw3.y" /* yacc.c:1646  */
+#line 640 "compiler_hw3.y" /* yacc.c:1646  */
     {
 		Function_status=2;	//function call
 		Result=lookup_symbol((yyvsp[-1].string));
@@ -2245,7 +2245,7 @@ yyreduce:
     break;
 
   case 103:
-#line 650 "compiler_hw3.y" /* yacc.c:1646  */
+#line 648 "compiler_hw3.y" /* yacc.c:1646  */
     {
 		Function_status=2;	//function call
 		Result=lookup_symbol((yyvsp[-1].string));
@@ -2257,8 +2257,34 @@ yyreduce:
 #line 2258 "y.tab.c" /* yacc.c:1646  */
     break;
 
+  case 107:
+#line 658 "compiler_hw3.y" /* yacc.c:1646  */
+    {
+		load_code_gen(); //in order to use the original value for later operation(not the value after INC), I load second time here
+		++stack_pointer[Scope];
+		fprintf(file, "	ldc 1\n");
+		strcpy(stack_type[Scope][stack_pointer[Scope]],"int");
+		arith_code_gen("add");
+		store_code_gen();	//pop from the stack, so top-of-stack is now the original value(before INC)
+	}
+#line 2271 "y.tab.c" /* yacc.c:1646  */
+    break;
+
+  case 108:
+#line 666 "compiler_hw3.y" /* yacc.c:1646  */
+    {
+		load_code_gen(); //in order to use the original value for later operation(not the value after DEC), I load second time here
+		++stack_pointer[Scope];
+		fprintf(file, "	ldc 1\n");
+		strcpy(stack_type[Scope][stack_pointer[Scope]],"int");
+		arith_code_gen("sub");
+		store_code_gen();	//pop from the stack, so top-of-stack is now the original value(before DEC)
+	}
+#line 2284 "y.tab.c" /* yacc.c:1646  */
+    break;
+
   case 109:
-#line 665 "compiler_hw3.y" /* yacc.c:1646  */
+#line 677 "compiler_hw3.y" /* yacc.c:1646  */
     {
 		Function_status=-1;
 		Result=lookup_symbol((yyvsp[0].string));
@@ -2271,11 +2297,11 @@ yyreduce:
 			load_code_gen();
 		}
 	}
-#line 2275 "y.tab.c" /* yacc.c:1646  */
+#line 2301 "y.tab.c" /* yacc.c:1646  */
     break;
 
 
-#line 2279 "y.tab.c" /* yacc.c:1646  */
+#line 2305 "y.tab.c" /* yacc.c:1646  */
       default: break;
     }
   /* User semantic actions sometimes alter yychar, and that requires
@@ -2503,7 +2529,7 @@ yyreturn:
 #endif
   return yyresult;
 }
-#line 728 "compiler_hw3.y" /* yacc.c:1906  */
+#line 740 "compiler_hw3.y" /* yacc.c:1906  */
 
 /* C code section */
 

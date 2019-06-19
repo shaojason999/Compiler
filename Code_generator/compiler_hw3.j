@@ -41,7 +41,7 @@
 	fadd
 	fstore 1
 	iload 0
-	ldc 0.100000
+	ldc 111.099998
 	swap
 	i2f
 	swap
@@ -59,6 +59,26 @@
 	fmul
 	f2i
 	istore 0
+	iload 0
+	getstatic java/lang/System/out Ljava/io/PrintStream;
+	swap
+	invokevirtual java/io/PrintStream/println(I)V
+	ldc 0
+	istore 1
+	iload 0
+	iload 0
+	ldc 1
+	isub
+	istore 0
+	istore 1
+	iload 1
+	getstatic java/lang/System/out Ljava/io/PrintStream;
+	swap
+	invokevirtual java/io/PrintStream/println(I)V
+	iload 0
+	getstatic java/lang/System/out Ljava/io/PrintStream;
+	swap
+	invokevirtual java/io/PrintStream/println(I)V
 	ldc 1.200000
 	iload 0
 	swap
@@ -116,5 +136,40 @@
 	getstatic java/lang/System/out Ljava/io/PrintStream;
 	swap
 	invokevirtual java/io/PrintStream/println(Ljava/lang/String;)V
+	iload 0
+	iload 0
+	ldc 1
+	isub
+	istore 0
+	iload 0
+	getstatic java/lang/System/out Ljava/io/PrintStream;
+	swap
+	invokevirtual java/io/PrintStream/println(I)V
+	fload 1
+	fload 1
+	ldc 1
+	i2f
+	fsub
+	fstore 1
+	iload 0
+	fload 1
+	fload 1
+	ldc 1
+	i2f
+	fsub
+	fstore 1
+	swap
+	i2f
+	swap
+	fadd
+	fstore 1
+	iload 0
+	getstatic java/lang/System/out Ljava/io/PrintStream;
+	swap
+	invokevirtual java/io/PrintStream/println(I)V
+	fload 1
+	getstatic java/lang/System/out Ljava/io/PrintStream;
+	swap
+	invokevirtual java/io/PrintStream/println(F)V
 	return
 .end method

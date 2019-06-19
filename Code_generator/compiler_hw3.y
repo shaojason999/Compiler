@@ -622,8 +622,6 @@ prefix_expression
 	: postfix_expression
 	| ADD prefix_expression
 	| SUB prefix_expression
-/*	| INC bra_expression
-	| DEC bra_expression*/
 ;
 
 postfix_expression
@@ -657,8 +655,22 @@ postfix_expression
 	}expression_list RB
 	| const_without_str
 	| LB expression_list RB
-	| bra_expression INC
-	| bra_expression DEC 
+	| bra_expression INC {
+		load_code_gen(); //in order to use the original value for later operation(not the value after INC), I load second time here
+		++stack_pointer[Scope];
+		fprintf(file, "	ldc 1\n");
+		strcpy(stack_type[Scope][stack_pointer[Scope]],"int");
+		arith_code_gen("add");
+		store_code_gen();	//pop from the stack, so top-of-stack is now the original value(before INC)
+	}
+	| bra_expression DEC {
+		load_code_gen(); //in order to use the original value for later operation(not the value after DEC), I load second time here
+		++stack_pointer[Scope];
+		fprintf(file, "	ldc 1\n");
+		strcpy(stack_type[Scope][stack_pointer[Scope]],"int");
+		arith_code_gen("sub");
+		store_code_gen();	//pop from the stack, so top-of-stack is now the original value(before DEC)
+	}
 ;
 
 bra_expression
