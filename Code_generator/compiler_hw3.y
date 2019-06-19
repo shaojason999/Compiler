@@ -43,15 +43,17 @@ struct SYMBOL_TABLE sym_table[SCOPE][ENTRY];
 int type_flag;	//-1 for no assign, 0 for int, 1 for float, 2 for bool, 3 for void, 4 for string
 int Stack_type;	//0 for int, 1 for float, 2 for bool, 3 for void, 4 for string
 int function_legal_flag;	//whether to generate code for function
+int global_flag;	//0 for local, 1 for global; used to determine whether gen ldc code for const
 int temp_int;
 float temp_float;
 bool temp_bool;
 char Par_type_list[10],return_type[10];
-char RETURN_TYPE[4]="IFZV";
+char Return_type[4]="IFZV";
 int Find_scope,Find_index;
 char Find_type[10];
 char stack_type[SCOPE][STACK_SIZE][10];
 int stack_pointer[SCOPE];
+int assignment_layer;	//determine whether generate load code after store code, e.g. a=b=1; only b need to load after store
 
 /* Symbol table function*/
 void create_symbol();
@@ -64,7 +66,7 @@ int hash(char *,int);
 /* code generation function */
 void create_par_type_list();
 void get_return_type(char type[10]);
-void find_index_and_scope();
+void find_index_and_scope_and_type();
 void store_code_gen();
 void load_code_gen();
 void arith_code_gen(char operand[10]);
@@ -115,7 +117,6 @@ program
 
 external_declaration
 	: function	{/*Par_count, Par*/}
-
 	| global_declaration
 	| comment
 ;
@@ -192,15 +193,47 @@ global_declarator_list
 
 global_declarator
 	: ID {strcpy(Variable,$1); type_flag=-1;}
-	| ID ASGN const_without_str {strcpy(Variable,$1);}
-	| ID ASGN STR_CONST {strcpy(Variable,$1);}
+	| ID ASGN {global_flag=1;} const_without_str {global_flag=0; strcpy(Variable,$1);}
+	| ID ASGN STR_CONST {strcpy(Variable,$1);}	//don't gen code for string in this assignment
 ;
 
 const_without_str
-	: I_CONST {temp_int=$1; type_flag=0;}
-	| F_CONST {temp_float=$1; type_flag=1;}
-	| TRUE {temp_bool=1; type_flag=2;}
-	| FALSE {temp_bool=0; type_flag=2;}
+	: I_CONST {
+		temp_int=$1;
+		type_flag=0;
+		if(global_flag==0){	//0 for local
+			++stack_pointer[Scope];
+			fprintf(file, "	ldc %d\n",temp_int);
+			strcpy(stack_type[Scope][stack_pointer[Scope]],"int");
+		}
+	}
+	| F_CONST {
+		temp_float=$1;
+		type_flag=1;
+		if(global_flag==0){	//0 for local
+			++stack_pointer[Scope];
+			fprintf(file, "	ldc %f\n",temp_float);
+			strcpy(stack_type[Scope][stack_pointer[Scope]],"float");
+		}
+	}
+	| TRUE {
+		temp_bool=1;
+		type_flag=2;
+		if(global_flag==0){	//0 for local
+			++stack_pointer[Scope];
+			fprintf(file, "	ldc %d\n",temp_bool);
+			strcpy(stack_type[Scope][stack_pointer[Scope]],"bool");
+		}
+	}
+	| FALSE {
+		temp_bool=0;
+		type_flag=2;
+		if(global_flag==0){	//0 for local
+			++stack_pointer[Scope];
+			fprintf(file, "	ldc %d\n",temp_bool);
+			strcpy(stack_type[Scope][stack_pointer[Scope]],"bool");
+		}
+	}
 ;
 
 type
@@ -249,7 +282,7 @@ function
 			get_return_type($1);
 
 			if(strcmp($2,"main")==0)
-				fprintf(file, ".method public static main([Ljava/lang/String;)%c\n",RETURN_TYPE[type_flag]);
+				fprintf(file, ".method public static main([Ljava/lang/String;)%c\n",Return_type[type_flag]);
 			else
 				fprintf(file, ".method public static %s()%s\n",$2,return_type);
 			fprintf(file, ".limit stack 50\n");
@@ -292,7 +325,7 @@ function
 			get_return_type($1);
 
 			if(strcmp($2,"main")==0)
-				fprintf(file, ".method public static main([Ljava/lang/String;)%c\n",RETURN_TYPE[type_flag]);
+				fprintf(file, ".method public static main([Ljava/lang/String;)%c\n",Return_type[type_flag]);
 			else{
 				create_par_type_list();
 				fprintf(file, ".method public static %s(%s)%s\n",$2,Par_type_list,$1);
@@ -347,15 +380,31 @@ statement_with_return
 ;
 
 print_statement
-	: PRINT LB ID {
+	: PRINT LB ID RB SEMICOLON{
 		Function_status=-1;
 		Result=lookup_symbol($3);
 		if(Result!=0){
 			Error=Result;
 			strcpy(Error_ID,$3);
 		}
-	}RB SEMICOLON
-	| PRINT LB STR_CONST RB SEMICOLON
+		else if(Result==0 && function_legal_flag==1){
+			strcpy(Variable,$3);
+			load_code_gen();	//we can gen load code and find type_flag here
+			fprintf(file, "	getstatic java/lang/System/out Ljava/io/PrintStream;\n");
+			fprintf(file, "	swap\n");
+			fprintf(file, "	invokevirtual java/io/PrintStream/println(%c)V\n",Return_type[type_flag]);
+		}
+	}
+	| PRINT LB const_without_str RB SEMICOLON{
+		fprintf(file, "	getstatic java/lang/System/out Ljava/io/PrintStream;\n");
+		fprintf(file, "	swap\n");
+		fprintf(file, "	invokevirtual java/io/PrintStream/println(%c)V\n",Return_type[type_flag]);
+	}
+	| PRINT LB STR_CONST RB SEMICOLON{
+		fprintf(file, "	getstatic java/lang/System/out Ljava/io/PrintStream;\n");
+		fprintf(file, "	swap\n");
+		fprintf(file, "	invokevirtual java/io/PrintStream/println(Ljava/lang/String;)V\n");
+	}
 ;
 
 comment
@@ -467,7 +516,7 @@ local_declarator
 		++stack_pointer[Scope];
 		strcpy(stack_type[Scope][stack_pointer[Scope]],"int");
 	}
-	| ID ASGN assignment_expression {strcpy(Variable,$1);}
+	| ID ASGN {++assignment_layer;} assignment_expression {--assignment_layer; strcpy(Variable,$1);}
 	| ID ASGN STR_CONST {
 		strcpy(Variable,$1);
 		if(function_legal_flag==1)
@@ -484,12 +533,13 @@ expression_statement
 
 expression_list
 	: assignment_expression
-	| expression_list COMMA assignment_expression
+	| expression_list COMMA  assignment_expression
 ;
 
 assignment_expression
 	: logical_or_expression
-	| ID assignment_operator assignment_expression{
+	| ID assignment_operator {++assignment_layer;} assignment_expression{
+		--assignment_layer;
 		Function_status=-1;
 		Result=lookup_symbol($1);
 		if(Result!=0){	//0 for no error
@@ -499,7 +549,8 @@ assignment_expression
 		else if(Result==0 && function_legal_flag==1){
 			strcpy(Variable,$1);	//Variable will be used in store_code_gen()
 			store_code_gen();
-			load_code_gen();
+			if(assignment_layer!=0)	//e.g. a=b=1; we need to load b after store it because we need to store it to a
+				load_code_gen();	// but we don't need to load a after store it
 		}
 	}
 	| ID ASGN STR_CONST{
@@ -515,7 +566,8 @@ assignment_expression
 			++stack_pointer[Scope];
 			strcpy(stack_type[Scope][stack_pointer[Scope]],"string");
 			store_code_gen();
-			load_code_gen();
+			if(assignment_layer!=0)
+				load_code_gen();
 		}
 	}
 ;
@@ -603,21 +655,7 @@ postfix_expression
 			strcpy(Error_ID,$1);
 		}
 	}expression_list RB
-	| const_without_str {
-		++stack_pointer[Scope];
-		if(type_flag==0){
-			fprintf(file, "	ldc %d\n",temp_int);
-			strcpy(stack_type[Scope][stack_pointer[Scope]],"int");
-		}
-		else if(type_flag==1){
-			fprintf(file, "	ldc %f\n",temp_float);
-			strcpy(stack_type[Scope][stack_pointer[Scope]],"float");
-		}
-		else if(type_flag==2){
-			fprintf(file, "	ldc %d\n",temp_bool);
-			strcpy(stack_type[Scope][stack_pointer[Scope]],"bool");
-		}
-	}
+	| const_without_str
 	| LB expression_list RB
 	| bra_expression INC
 	| bra_expression DEC 
@@ -742,7 +780,7 @@ void find_index_and_scope_and_type()
 
 void store_code_gen()
 {
-	find_index_and_scope_and_type();	//use global variables: Find_scope, Find_index
+	find_index_and_scope_and_type();	//use global variables: Find_scope, Find_index, Find_type
 	get_return_type(Find_type);
 	
 	if(Find_scope>0){
@@ -762,7 +800,7 @@ void store_code_gen()
 			fprintf(file, "	astore %d\n",Find_index);
 	}
 	else if(Find_scope==0)	//attetion: no string type is in the global scope
-		fprintf(file, "	putstatic %s/%s %c\n",FILE_NAME,Variable,RETURN_TYPE[type_flag]);
+		fprintf(file, "	putstatic %s/%s %c\n",FILE_NAME,Variable,Return_type[type_flag]);
 
 	--stack_pointer[Scope];
 }
@@ -785,7 +823,7 @@ void load_code_gen()
 			fprintf(file, "	aload %d\n",Find_index);
 	}
 	else if(Find_scope==0)	//attetion: no string type is in the global scope
-		fprintf(file, "	getstatic %s/%s %c\n",FILE_NAME,Variable,RETURN_TYPE[type_flag]);
+		fprintf(file, "	getstatic %s/%s %c\n",FILE_NAME,Variable,Return_type[type_flag]);
 	
 	if(type_flag==0)	//int
 		strcpy(stack_type[Scope][stack_pointer[Scope]],"int");
@@ -1055,6 +1093,7 @@ void init()
 	function_par_flag=0;
 
 	function_legal_flag=0;
+	assignment_layer=0;
 }
 
 int main(int argc, char** argv)
