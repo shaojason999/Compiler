@@ -55,6 +55,7 @@ char stack_type[SCOPE][STACK_SIZE][10];
 int stack_pointer[SCOPE];
 int function_type[SCOPE];
 int assignment_layer;	//determine whether generate load code after store code, e.g. a=b=1; only b need to load after store
+int assignment_type[10];	//assignment_type[assignment_layer] to record what kind of assignment_operator; 0 for =, 1 for +=, ...
 
 /* Symbol table function*/
 void create_symbol();
@@ -526,6 +527,27 @@ assignment_expression
 		}
 		else if(Result==0 && function_legal_flag==1){
 			strcpy(Variable,$1);	//Variable will be used in store_code_gen()
+
+			if(assignment_type[assignment_layer]!=0){	//0 for =
+				load_code_gen();	//load the id before assign(+=, -=, ...)
+
+				fprintf(file, "	swap\n");	//a*=1; is a=a*1;, not a=1*a;
+				char temp_swap[10];	//also swap the stack types
+				strcpy(temp_swap,stack_type[Scope][stack_pointer[Scope]]);
+				strcpy(stack_type[Scope][stack_pointer[Scope]],stack_type[Scope][stack_pointer[Scope]-1]);
+				strcpy(stack_type[Scope][stack_pointer[Scope]-1],temp_swap);
+
+				if(assignment_type[assignment_layer]==1)	//1 for +=
+					arith_code_gen("add");
+				else if(assignment_type[assignment_layer]==2)	//2 for -=
+					arith_code_gen("sub");
+				else if(assignment_type[assignment_layer]==3)	//3 for *=
+					arith_code_gen("mul");
+				else if(assignment_type[assignment_layer]==4)	//4 for /=
+					arith_code_gen("div");
+				else if(assignment_type[assignment_layer]==5)	//5 for %=
+					arith_code_gen("mod");
+			}
 			store_code_gen();
 			if(assignment_layer!=0)	//e.g. a=b=1; we need to load b after store it because we need to store it to a
 				load_code_gen();	// but we don't need to load a after store it
@@ -551,12 +573,12 @@ assignment_expression
 ;
 
 assignment_operator
-	: ASGN
-	| ADDASGN
-	| SUBASGN
-	| MULASGN
-	| DIVASGN
-	| MODASGN
+	: ASGN {assignment_type[assignment_layer]=0;}
+	| ADDASGN {assignment_type[assignment_layer]=1;}
+	| SUBASGN {assignment_type[assignment_layer]=2;}
+	| MULASGN {assignment_type[assignment_layer]=3;}
+	| DIVASGN {assignment_type[assignment_layer]=4;}
+	| MODASGN {assignment_type[assignment_layer]=5;}
 ;
 
 logical_or_expression
@@ -785,6 +807,7 @@ void store_code_gen()
 
 void load_code_gen()
 {
+	/*before you call load_code_gen, you have to assign variable name to Variable*/
 	find_index_and_scope_and_type();	//use global variables: Find_scope, Find_index
 	get_return_type(Find_type);
 	
