@@ -758,7 +758,20 @@ selection_statement_prefix
 	} compound_statement
 
 iteration_statement
-	: WHILE LB expression_list RB loop_compound_statement
+	: WHILE {
+		Label[label_layer]=max_label_count;
+		Exit[label_layer]=max_exit_count;
+		++max_label_count;
+		++max_exit_count;
+		fprintf(file, "%s_%d:\n",LABEL,Label[label_layer]);
+		++label_layer;
+	} LB expression_list RB {
+		--label_layer;
+		fprintf(file, "	ifeq %s_%d\n",EXIT,Exit[label_layer]);
+	} loop_compound_statement {
+		fprintf(file, "	goto %s_%d\n",LABEL,Label[label_layer]);
+		fprintf(file, "%s_%d:\n",EXIT,Exit[label_layer]);
+	}
 ;
 
 loop_statement
