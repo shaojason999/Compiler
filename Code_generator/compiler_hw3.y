@@ -58,7 +58,10 @@ int stack_pointer[SCOPE];
 int function_type[SCOPE];
 int assignment_layer;	//determine whether generate load code after store code, e.g. a=b=1; only b need to load after store
 int assignment_type[10];	//assignment_type[assignment_layer] to record what kind of assignment_operator; 0 for =, 1 for +=, ...
-int label_count,exit_count;
+int Label[10],Exit[10],label_layer;	//used to record the LABEL and EXIT number in each layer; label_layer record the current layer
+int max_label_count,max_exit_count;
+int temp_function;	//bad declared variable
+char temp_function_ID[10];	//bad declared variable
 
 /* Symbol table function*/
 void create_symbol();
@@ -292,7 +295,7 @@ function
 			if(strcmp($2,"main")==0)
 				fprintf(file, ".method public static main([Ljava/lang/String;)%c\n",Return_type[type_flag]);
 			else
-				fprintf(file, ".method public static %s()%s\n",$2,return_type);
+				fprintf(file, ".method public static %s()%c\n",$2,Return_type[type_flag]);
 			fprintf(file, ".limit stack %d\n",STACK_SIZE);
 			fprintf(file, ".limit locals %d\n",STACK_SIZE);
 		}
@@ -324,7 +327,9 @@ function
 				fprintf(file, ".method public static main([Ljava/lang/String;)%c\n",Return_type[type_flag]);
 			else{
 				create_par_type_list();
-				fprintf(file, ".method public static %s(%s)%s\n",$2,Par_type_list,$1);
+				int temp;
+				get_return_type($1);
+				fprintf(file, ".method public static %s(%s)%c\n",$2,Par_type_list,Return_type[type_flag]);
 			}
 			fprintf(file, ".limit stack %d\n",STACK_SIZE);
 			fprintf(file, ".limit locals %d\n",STACK_SIZE);
@@ -340,6 +345,7 @@ function_parameter_list
 		strcpy(Par[Par_count],Type);
 		/*used for the local variable of function later*/
 		strcpy(Par_id[Par_count++],$2);
+		printf("123\n");
 	}
 	| function_parameter_list COMMA type ID {
 		strcpy(Par[Par_count],Type);
@@ -351,7 +357,14 @@ function_parameter_list
 statement
 	: compound_statement
 	| statement_with_return
-	| selection_statement
+	| {
+		++label_layer;
+		Exit[label_layer]=max_exit_count;
+		++max_exit_count;
+	} selection_statement {
+		fprintf(file, "%s_%d:\n",EXIT,Exit[label_layer]);
+		--label_layer;
+	}
 	| iteration_statement
 	| comment
 	| jump_statement
@@ -657,6 +670,8 @@ postfix_expression
 			Error=Result;
 			strcpy(Error_ID,$1);
 		}
+		if(Result==0)
+			fprintf(file, "	invokestatic %s/%s()%c\n",FILE_NAME,$1,Return_type[type_flag]);
 	}RB
 	| ID LB {
 		Function_status=2;	//function call
@@ -665,7 +680,25 @@ postfix_expression
 			Error=Result;
 			strcpy(Error_ID,$1);
 		}
-	}expression_list RB
+		temp_function=stack_pointer[Scope];
+		strcpy(temp_function_ID,$1);
+	}expression_list RB{
+		char temp_type[10]="";
+		int temp=temp_function;
+		for(++temp;temp<=stack_pointer[Scope];++temp){
+			get_return_type(stack_type[Scope][stack_pointer[Scope]]);
+			if(type_flag==0)
+				strcat(temp_type,"I");
+			else if(type_flag==1)
+				strcat(temp_type,"F");
+			else if(type_flag==2)
+				strcat(temp_type,"Z");
+		}
+		strcpy(Variable,temp_function_ID);
+		find_index_and_scope_and_type();
+		get_return_type(Find_type);
+		fprintf(file, "	invokestatic %s/%s(%s)%c\n",FILE_NAME,temp_function_ID,temp_type,Return_type[type_flag]);
+	}
 	| const_without_str
 	| LB expression_list RB
 	| bra_expression INC {
@@ -703,10 +736,26 @@ bra_expression
 ;
 
 selection_statement
-	: IF LB expression_list RB compound_statement
-	| IF LB expression_list RB compound_statement ELSE selection_statement
-	| IF LB expression_list RB compound_statement ELSE compound_statement
+	: selection_statement_prefix {	//the last "if" don't need goto exit, or the single if
+		fprintf(file, "%s_%d:\n",LABEL,Label[label_layer]);
+		fprintf(file, "	goto %s_%d\n",EXIT,Exit[label_layer]);
+	}
+	| selection_statement_prefix ELSE {
+		fprintf(file, "	goto %s_%d\n",EXIT,Exit[label_layer]);
+		fprintf(file, "%s_%d:\n",LABEL,Label[label_layer]);
+	} selection_statement
+	| selection_statement_prefix ELSE {
+		fprintf(file, "	goto %s_%d\n",EXIT,Exit[label_layer]);
+		fprintf(file, "%s_%d:\n",LABEL,Label[label_layer]);
+	} compound_statement
 ;
+
+selection_statement_prefix
+	:  IF LB expression_list RB {
+		fprintf(file, "	ifeq %s_%d\n",LABEL,max_label_count);
+		Label[label_layer]=max_label_count;
+		++max_label_count;
+	} compound_statement
 
 iteration_statement
 	: WHILE LB expression_list RB loop_compound_statement
@@ -758,12 +807,12 @@ void create_par_type_list()
 	int i;
 	strcpy(Par_type_list,"");
 	for(i=0;i<Par_count;++i){
-		if(strcmp(Par[Par_count],"int")==0)
+		if(strcmp(Par[i],"int")==0)
 			strcat(Par_type_list,"I");
-		else if(strcmp(Par[Par_count],"float")==0)
+		else if(strcmp(Par[i],"float")==0)
 			strcat(Par_type_list,"F");
-		else if(strcmp(Par[Par_count],"bool")==0)
-			strcat(Par[Par_count],"Z");
+		else if(strcmp(Par[i],"bool")==0)
+			strcat(Par_type_list,"Z");
 	}
 }
 
@@ -863,17 +912,17 @@ void load_code_gen()
 
 void compare_result_code_gen(char compare[10])
 {
-	fprintf(file, "	%s %s_%d\n",compare,LABEL,label_count);
+	fprintf(file, "	%s %s_%d\n",compare,LABEL,max_label_count);
 	fprintf(file, "	ldc 0\n");
-	fprintf(file, "	goto %s_%d\n",EXIT,exit_count);
-	fprintf(file, "%s_%d:\n",LABEL,label_count);
+	fprintf(file, "	goto %s_%d\n",EXIT,max_exit_count);
+	fprintf(file, "%s_%d:\n",LABEL,max_label_count);
 	fprintf(file, "	ldc 1\n");
-	fprintf(file, "%s_%d:\n",EXIT,exit_count);
-	++label_count;
-	++exit_count;
+	fprintf(file, "%s_%d:\n",EXIT,max_exit_count);
+	++max_label_count;
+	++max_exit_count;
 }
 
-void compare(char operator[10])	//get the value(1 or 0) of the compare relation
+void compare(char operator[10])	//get the value(1 or 0) of the compare compare_result_code_gen("ifeq");
 {
 	arith_code_gen("sub");
 	if(type_flag==1)
@@ -1184,8 +1233,9 @@ void init()
 	function_legal_flag=0;
 	assignment_layer=0;
 
-	label_count=0;
-	exit_count=0;
+	label_layer=-1;
+	max_label_count=0;
+	max_exit_count=0;
 }
 
 int main(int argc, char** argv)
