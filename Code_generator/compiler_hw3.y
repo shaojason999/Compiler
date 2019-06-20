@@ -777,7 +777,14 @@ iteration_statement
 loop_statement
 	: loop_compound_statement
 	| expression_statement
-	| loop_selection_statement
+	| {
+		++label_layer;
+		Exit[label_layer]=max_exit_count;
+		++max_exit_count;
+	} loop_selection_statement {
+		fprintf(file, "%s_%d:\n",EXIT,Exit[label_layer]);
+		--label_layer;
+	}
 	| iteration_statement
 	| print_statement
 	| comment
@@ -785,14 +792,70 @@ loop_statement
 ;
 
 loop_selection_statement
-	: IF LB expression_list RB loop_compound_statement
-	| IF LB expression_list RB loop_compound_statement ELSE loop_selection_statement
-	| IF LB expression_list RB loop_compound_statement ELSE loop_compound_statement
+	: loop_selection_statement_prefix {	//the last "if" don't need goto exit, or the single if
+		fprintf(file, "%s_%d:\n",LABEL,Label[label_layer]);
+		fprintf(file, "	goto %s_%d\n",EXIT,Exit[label_layer]);
+	}
+	| loop_selection_statement_prefix ELSE {
+		fprintf(file, "	goto %s_%d\n",EXIT,Exit[label_layer]);
+		fprintf(file, "%s_%d:\n",LABEL,Label[label_layer]);
+	} loop_selection_statement
+	| loop_selection_statement_prefix ELSE {
+		fprintf(file, "	goto %s_%d\n",EXIT,Exit[label_layer]);
+		fprintf(file, "%s_%d:\n",LABEL,Label[label_layer]);
+	} loop_compound_statement
 ;
 
+loop_selection_statement_prefix
+	:  IF LB expression_list RB {
+		fprintf(file, "	ifeq %s_%d\n",LABEL,max_label_count);
+		Label[label_layer]=max_label_count;
+		++max_label_count;
+	} loop_compound_statement
+
 loop_compound_statement
-	: LCB RCB
-	| LCB loop_block_item_list RCB
+	: LCB {
+		create_symbol();
+		if(function_par_flag){
+			int i,count;
+			count=Par_count;
+			for(i=0;i<count;++i){
+				strcpy(Variable,Par_id[i]);
+				strcpy(Kind,"parameter");
+				strcpy(Type,Par[i]);
+				Par_count=0;
+				Result=insert_symbol();
+				if(Result!=0 && Error==0){	//redefine variable
+					Error=Result;
+					strcpy(Error_ID,Variable);
+				}
+			}
+			function_par_flag=0;
+		}
+	}RCB {
+		dump_flag=1;
+	}
+	| LCB {
+		create_symbol();
+		if(function_par_flag){
+			int i,count;
+			count=Par_count;
+			for(i=0;i<count;++i){
+				strcpy(Variable,Par_id[i]);
+				strcpy(Kind,"parameter");
+				strcpy(Type,Par[i]);
+				Par_count=0;
+				Result=insert_symbol();
+				if(Result!=0 && Error==0){	//redefine variable
+					Error=Result;
+					strcpy(Error_ID,Variable);
+				}
+			}
+			function_par_flag=0;
+		}
+	}loop_block_item_list RCB {
+		dump_flag=1;
+	}
 ;
 
 loop_block_item_list

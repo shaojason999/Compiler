@@ -1,12 +1,13 @@
-void a()
-{
-	print(1);
-	return;
-}
-
 void main()
 {
-	a();
-	return;
+	int a;
 
+	if(a>0){
+		print(a);
+	}
+	else{
+		a++;
+	}
+
+	return;
 }
