@@ -13,6 +13,8 @@ Compiler課程Homework
 * 繼續使用HW1及HW2
 * 把HW2的code做擴充
 
+#### 三個作業都只需要修改.l檔(scanner)跟.y檔(parser and code generator)就好，其他都是附加產生或是所需資料
+
 ---
 ### 以下這張圖的三個黑色方框，就是我們這三個HW實作的部分
 ![](https://i.imgur.com/uV1xAiv.png)
