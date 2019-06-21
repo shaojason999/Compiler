@@ -6,7 +6,7 @@
 	ldc 0
 	istore 0
 	iload 0
-	ldc 0
+	ldc 2
 	isub
 	ifgt Label_0
 	ldc 0
@@ -19,13 +19,8 @@ Exit_1:
 	getstatic java/lang/System/out Ljava/io/PrintStream;
 	swap
 	invokevirtual java/io/PrintStream/println(I)V
-	goto Exit_0
 Label_1:
-	iload 0
-	iload 0
-	ldc 1
-	iadd
-	istore 0
+	goto Exit_0
 Exit_0:
 	return
 .end method

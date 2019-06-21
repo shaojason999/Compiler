@@ -345,7 +345,6 @@ function_parameter_list
 		strcpy(Par[Par_count],Type);
 		/*used for the local variable of function later*/
 		strcpy(Par_id[Par_count++],$2);
-		printf("123\n");
 	}
 	| function_parameter_list COMMA type ID {
 		strcpy(Par[Par_count],Type);

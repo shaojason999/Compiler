@@ -2,12 +2,8 @@ void main()
 {
 	int a;
 
-	if(a>0){
-		print(a);
-	}
-	else{
+	if(a>2){
 		a++;
 	}
-
 	return;
 }
