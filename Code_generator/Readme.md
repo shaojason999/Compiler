@@ -2,7 +2,7 @@
 
 ## 程式目的與流程
 1. 將scanner與parser的功能擴展至 code generator
-2. 這個 code generator 是把 C-lik e的語言編譯成 Java assembly code (use Jasmin instructions)
+2. 這個 code generator 是把 C-like的語言編譯成 Java assembly code (use Jasmin instructions)
 3. 使用 Jasmin 把 Java assembly code 編譯成 Java bytecode
 4. 最後把 Java bytecode 給 JVM 後就可以執行並得到程式結果了
 * 
